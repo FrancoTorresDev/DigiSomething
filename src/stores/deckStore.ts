@@ -1,36 +1,68 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Deck, DeckCard } from '@/models/Deck'
 import type { DigimonCard } from '@/models/Card'
 import {
   getUserDecks,
   saveDeck as saveDeckService,
+  updateDeck as updateDeckService,
   deleteDeck as deleteDeckService
 } from '@/services/deckService'
 import { useAuthStore } from './authStore'
 
 const DECK_MAX = 50
+const DIGI_EGG_MAX = 5
 const CARD_MAX_COPIES = 4
+const STORAGE_KEY = 'digimon-active-deck'
 
 function emptyDeck(): Deck {
   return { id: '', ownerId: '', name: 'New Deck', cards: [], isPublic: false, votes: 0 }
 }
 
+function loadFromStorage(): Deck {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw) as Deck
+  } catch { /* ignore */ }
+  return emptyDeck()
+}
+
 export const useDeckStore = defineStore('deck', () => {
   const userDecks = ref<Deck[]>([])
-  const activeDeck = ref<Deck>(emptyDeck())
+  const activeDeck = ref<Deck>(loadFromStorage())
   const loading = ref(false)
+
+  watch(activeDeck, (deck) => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(deck)) } catch { /* ignore */ }
+  }, { deep: true })
 
   const totalCards = computed(() =>
     activeDeck.value.cards.reduce((sum, c) => sum + c.quantity, 0)
+  )
+
+  const digiEggTotal = computed(() =>
+    activeDeck.value.cards
+      .filter((c) => c.card.type === 'Digi-Egg')
+      .reduce((sum, c) => sum + c.quantity, 0)
+  )
+
+  const mainDeckTotal = computed(() =>
+    activeDeck.value.cards
+      .filter((c) => c.card.type !== 'Digi-Egg')
+      .reduce((sum, c) => sum + c.quantity, 0)
   )
 
   function addCard(card: DigimonCard): void {
     const existing = activeDeck.value.cards.find((c) => c.card.cardnumber === card.cardnumber)
     if (existing) {
       if (existing.quantity < CARD_MAX_COPIES) existing.quantity++
-    } else if (totalCards.value < DECK_MAX) {
-      activeDeck.value.cards.push({ card, quantity: 1 })
+    } else {
+      const isEgg = card.type === 'Digi-Egg'
+      const limit = isEgg ? DIGI_EGG_MAX : DECK_MAX
+      const current = isEgg ? digiEggTotal.value : mainDeckTotal.value
+      if (current < limit) {
+        activeDeck.value.cards.push({ card, quantity: 1 })
+      }
     }
   }
 
@@ -69,16 +101,24 @@ export const useDeckStore = defineStore('deck', () => {
     if (!auth.user) return
     loading.value = true
     try {
-      const id = await saveDeckService({
-        ownerId: auth.user.uid,
-        name: activeDeck.value.name,
-        cards: activeDeck.value.cards,
-        isPublic: activeDeck.value.isPublic,
-        votes: 0,
-        ownerName: auth.displayName,
-        ownerPhoto: auth.photoURL
-      })
-      activeDeck.value.id = id
+      if (activeDeck.value.id) {
+        await updateDeckService(activeDeck.value.id, {
+          name: activeDeck.value.name,
+          cards: activeDeck.value.cards,
+          isPublic: activeDeck.value.isPublic
+        })
+      } else {
+        const id = await saveDeckService({
+          ownerId: auth.user.uid,
+          name: activeDeck.value.name,
+          cards: activeDeck.value.cards,
+          isPublic: activeDeck.value.isPublic,
+          votes: 0,
+          ownerName: auth.displayName,
+          ownerPhoto: auth.photoURL
+        })
+        activeDeck.value.id = id
+      }
       await loadUserDecks()
     } finally {
       loading.value = false
@@ -95,6 +135,8 @@ export const useDeckStore = defineStore('deck', () => {
     activeDeck,
     loading,
     totalCards,
+    digiEggTotal,
+    mainDeckTotal,
     addCard,
     removeCard,
     clearDeck,

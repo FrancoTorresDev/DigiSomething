@@ -25,6 +25,9 @@ function getBorderClass(color: string): string {
   <div
     class="relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-black/60 bg-gray-900"
     :class="getBorderClass(props.card.color)"
+    draggable="true"
+    @dragstart="(e) => { e.dataTransfer?.setData('text/plain', JSON.stringify(card)); (e.currentTarget as HTMLElement).style.opacity = '0.5' }"
+    @dragend="(e) => ((e.currentTarget as HTMLElement).style.opacity = '')"
   >
     <!-- Card image -->
     <div class="aspect-[2/3] relative overflow-hidden bg-gray-800">
@@ -44,11 +47,10 @@ function getBorderClass(color: string): string {
     </div>
 
     <!-- Card info -->
-    <div class="p-2">
-      <p class="text-xs font-medium text-white truncate">{{ card.name }}</p>
-      <div class="flex justify-between items-center mt-0.5">
+    <div class="px-2 py-1">
+      <div class="flex justify-between items-center">
         <span class="text-[10px] text-gray-400">{{ card.type }}</span>
-        <span class="text-[10px] text-gray-500">{{ card.rarity }}</span>
+        <span class="text-[10px] text-gray-500 font-mono">{{ card.rarity }}-{{ card.cardnumber }}</span>
       </div>
     </div>
 

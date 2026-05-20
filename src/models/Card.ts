@@ -11,5 +11,5 @@ export interface DigimonCard {
   set_name?: string
   imgurl: string
   mainEffect?: string
-  soureEffect?: string
+  sourceEffect?: string
 }

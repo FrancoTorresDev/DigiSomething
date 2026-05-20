@@ -1,31 +1,39 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { watch } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
-import HomeView from '@/views/HomeView.vue'
+import GalleryView from '@/views/GalleryView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView
+      redirect: '/gallery'
     },
     {
       path: '/gallery',
       name: 'gallery',
-      component: () => import('@/views/GalleryView.vue')
+      component: GalleryView
+    },
+    {
+      path: '/news',
+      name: 'news',
+      component: () => import('@/views/HomeView.vue')
     },
     {
       path: '/deck-builder',
       name: 'deck-builder',
-      component: () => import('@/views/DeckBuilderView.vue'),
-      meta: { requiresAuth: true }
+      component: () => import('@/views/DeckBuilderView.vue')
     },
     {
       path: '/meta',
       name: 'meta',
       component: () => import('@/views/MetaView.vue')
+    },
+    {
+      path: '/tournament',
+      name: 'tournament',
+      component: () => import('@/views/TournamentView.vue')
     },
     {
       path: '/profile',

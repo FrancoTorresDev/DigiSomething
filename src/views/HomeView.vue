@@ -4,17 +4,40 @@ import { fetchNews, type NewsItem } from '@/services/rssService'
 
 const news = ref<NewsItem[]>([])
 const loading = ref(true)
+const loadingMore = ref(false)
 const error = ref<string | null>(null)
+const afterCursor = ref<string | null>(null)
+const hasMore = ref(false)
 
-onMounted(async () => {
+async function loadNews(): Promise<void> {
+  loading.value = true
+  error.value = null
   try {
-    news.value = await fetchNews()
+    const page = await fetchNews(undefined, 15)
+    news.value = page.items
+    afterCursor.value = page.after
+    hasMore.value = !!page.after
   } catch {
     error.value = 'Could not load news feed. Please try again later.'
   } finally {
     loading.value = false
   }
-})
+}
+
+async function loadMore(): Promise<void> {
+  if (!afterCursor.value || loadingMore.value) return
+  loadingMore.value = true
+  try {
+    const page = await fetchNews(afterCursor.value, 10)
+    news.value.push(...page.items)
+    afterCursor.value = page.after
+    hasMore.value = !!page.after
+  } finally {
+    loadingMore.value = false
+  }
+}
+
+onMounted(loadNews)
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -33,7 +56,15 @@ function stripHtml(html: string): string {
   <div class="max-w-4xl mx-auto px-4 py-10">
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-white mb-1">News</h1>
-      <p class="text-gray-400">Latest from the Digimon Card Game community</p>
+      <p class="text-gray-400">
+        Latest from the Digimon Card Game community ·
+        <a
+          href="https://www.reddit.com/r/DigimonCardGame2020"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-orange-400 hover:text-orange-300 transition-colors"
+        >r/DigimonCardGame2020</a>
+      </p>
     </div>
 
     <!-- Loading -->
@@ -45,7 +76,7 @@ function stripHtml(html: string): string {
     <div v-else-if="error" class="text-center py-20 text-gray-500">
       <p class="mb-3">{{ error }}</p>
       <button
-        @click="() => { loading = true; fetchNews().then(n => { news = n; error = null }).catch(() => { error = 'Failed' }).finally(() => { loading = false }) }"
+        @click="loadNews"
         class="text-sm text-blue-400 hover:underline"
       >
         Retry
@@ -54,7 +85,7 @@ function stripHtml(html: string): string {
 
     <!-- Empty -->
     <div v-else-if="news.length === 0" class="text-center py-20 text-gray-500">
-      <p>No news articles found.</p>
+      <p>No news posts this week.</p>
     </div>
 
     <!-- News feed -->
@@ -70,7 +101,13 @@ function stripHtml(html: string): string {
           :alt="item.title"
           class="w-36 shrink-0 object-cover"
           loading="lazy"
+          @error="(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden') }"
         />
+        <!-- Shown when image errors out (sibling swap via @error above) -->
+        <div :class="item.thumbnail ? 'hidden' : ''" class="w-36 shrink-0 bg-gray-800 flex flex-col items-center justify-center gap-1">
+          <span class="text-3xl font-black tracking-tight text-yellow-500/40">DS</span>
+          <span class="text-[9px] uppercase tracking-widest text-gray-600">DigiSomething</span>
+        </div>
         <div class="p-5 flex-1 min-w-0">
           <p class="text-xs text-gray-500 mb-1.5">
             {{ item.author }} · {{ formatDate(item.pubDate) }}
@@ -87,6 +124,23 @@ function stripHtml(html: string): string {
           </a>
         </div>
       </article>
+
+      <!-- Load More -->
+      <div class="flex justify-center pt-2 pb-6">
+        <button
+          v-if="hasMore"
+          @click="loadMore"
+          :disabled="loadingMore"
+          class="px-6 py-2.5 rounded-lg border border-gray-700 text-sm text-gray-300 hover:border-yellow-500 hover:text-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span v-if="loadingMore" class="flex items-center gap-2">
+            <span class="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin inline-block"></span>
+            Loading…
+          </span>
+          <span v-else>Load 10 more</span>
+        </button>
+        <p v-else class="text-xs text-gray-600">No more posts</p>
+      </div>
     </div>
   </div>
 </template>

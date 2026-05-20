@@ -6,11 +6,14 @@ import {
   updateDoc,
   deleteDoc,
   getDocs,
+  getDoc,
+  setDoc,
   query,
   where,
   orderBy,
   limit,
-  serverTimestamp
+  serverTimestamp,
+  increment
 } from 'firebase/firestore'
 import type { Deck } from '@/models/Deck'
 
@@ -47,4 +50,22 @@ export async function getTopDecks(limitCount = 20): Promise<Deck[]> {
   )
   const snap = await getDocs(q)
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Deck)
+}
+
+export async function incrementVote(deckId: string): Promise<void> {
+  await updateDoc(doc(db, COL, deckId), { votes: increment(1) })
+}
+
+export async function hasUserVoted(uid: string, deckId: string): Promise<boolean> {
+  const snap = await getDoc(doc(db, 'users', uid, 'votes', deckId))
+  return snap.exists()
+}
+
+export async function recordUserVote(uid: string, deckId: string): Promise<void> {
+  await setDoc(doc(db, 'users', uid, 'votes', deckId), { at: serverTimestamp() })
+}
+
+export async function getUserVotedIds(uid: string): Promise<string[]> {
+  const snap = await getDocs(collection(db, 'users', uid, 'votes'))
+  return snap.docs.map((d) => d.id)
 }

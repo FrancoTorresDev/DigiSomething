@@ -1,21 +1,41 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useMetaStore } from '@/stores/metaStore'
 import { useAuthStore } from '@/stores/authStore'
-import { updateDeck } from '@/services/deckService'
+import { incrementVote, recordUserVote, getUserVotedIds } from '@/services/deckService'
 import type { Deck } from '@/models/Deck'
 
 const meta = useMetaStore()
 const auth = useAuthStore()
 const voting = ref(new Set<string>())
+const votedDeckIds = ref<Set<string>>(new Set())
 
-onMounted(() => meta.fetchMeta())
+async function loadVotedIds(): Promise<void> {
+  if (!auth.user) return
+  const ids = await getUserVotedIds(auth.user.uid)
+  votedDeckIds.value = new Set(ids)
+}
+
+onMounted(async () => {
+  await meta.fetchMeta()
+  await loadVotedIds()
+})
+
+watch(() => auth.isLoggedIn, async (loggedIn) => {
+  if (loggedIn) {
+    await loadVotedIds()
+  } else {
+    votedDeckIds.value = new Set()
+  }
+})
 
 async function vote(deck: Deck): Promise<void> {
-  if (!auth.isLoggedIn || !deck.id || voting.value.has(deck.id)) return
+  if (!auth.user || !deck.id || voting.value.has(deck.id) || votedDeckIds.value.has(deck.id)) return
   voting.value.add(deck.id)
   try {
-    await updateDeck(deck.id, { votes: (deck.votes || 0) + 1 })
+    await incrementVote(deck.id)
+    await recordUserVote(auth.user.uid, deck.id)
+    votedDeckIds.value = new Set([...votedDeckIds.value, deck.id])
     await meta.fetchMeta()
   } finally {
     voting.value.delete(deck.id)
@@ -74,9 +94,9 @@ const COLOR_BADGE: Record<string, string> = {
           <span class="text-2xl font-black text-gray-700 leading-none">#{{ i + 1 }}</span>
           <button
             @click="vote(deck)"
-            :disabled="!auth.isLoggedIn || voting.has(deck.id)"
+            :disabled="!auth.isLoggedIn || voting.has(deck.id) || votedDeckIds.has(deck.id)"
             class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-yellow-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            :title="!auth.isLoggedIn ? 'Sign in to vote' : 'Upvote'"
+            :title="!auth.isLoggedIn ? 'Sign in to vote' : votedDeckIds.has(deck.id) ? 'Already voted' : 'Upvote'"
           >
             ▲ {{ deck.votes || 0 }}
           </button>

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from 'firebase/auth'
 import { signInWithGoogle, signOut, onAuthChange } from '@/services/authService'
+import type { UserProfile } from '@/models/User'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -10,6 +11,16 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => user.value !== null)
   const displayName = computed(() => user.value?.displayName ?? '')
   const photoURL = computed(() => user.value?.photoURL ?? '')
+
+  const profile = computed<UserProfile | null>(() => {
+    if (!user.value) return null
+    return {
+      uid: user.value.uid,
+      displayName: user.value.displayName ?? '',
+      photoURL: user.value.photoURL ?? '',
+      email: user.value.email ?? ''
+    }
+  })
 
   function init(): () => void {
     const unsubscribe = onAuthChange((firebaseUser) => {
@@ -20,7 +31,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(): Promise<void> {
-    await signInWithGoogle()
+    const firebaseUser = await signInWithGoogle()
+    user.value = firebaseUser
   }
 
   async function logout(): Promise<void> {
@@ -28,5 +40,5 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
   }
 
-  return { user, loading, isLoggedIn, displayName, photoURL, init, login, logout }
+  return { user, loading, isLoggedIn, displayName, photoURL, profile, init, login, logout }
 })
