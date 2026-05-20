@@ -40,6 +40,11 @@ const router = createRouter({
       name: 'profile',
       component: () => import('@/views/ProfileView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/deck/:id',
+      name: 'deck-detail',
+      component: () => import('@/views/DeckDetailView.vue')
     }
   ]
 })

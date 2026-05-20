@@ -15,4 +15,6 @@ export interface Deck {
   createdAt?: unknown
   ownerName?: string
   ownerPhoto?: string
+  description?: string
+  videoUrl?: string
 }

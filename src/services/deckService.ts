@@ -69,3 +69,9 @@ export async function getUserVotedIds(uid: string): Promise<string[]> {
   const snap = await getDocs(collection(db, 'users', uid, 'votes'))
   return snap.docs.map((d) => d.id)
 }
+
+export async function getDeckById(id: string): Promise<Deck | null> {
+  const snap = await getDoc(doc(db, COL, id))
+  if (!snap.exists()) return null
+  return { id: snap.id, ...snap.data() } as Deck
+}

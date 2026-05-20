@@ -56,15 +56,18 @@ async function togglePublic(deckId: string, current: boolean): Promise<void> {
         :key="deck.id"
         class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex items-center justify-between gap-4 hover:border-gray-700 transition-colors"
       >
-        <div class="min-w-0">
-          <h3 class="text-white font-semibold truncate">{{ deck.name }}</h3>
+        <RouterLink
+          :to="{ name: 'deck-detail', params: { id: deck.id } }"
+          class="min-w-0 flex-1 cursor-pointer"
+        >
+          <h3 class="text-white font-semibold truncate hover:text-yellow-400 transition-colors">{{ deck.name }}</h3>
           <p class="text-sm text-gray-500 mt-0.5">
             {{ deck.cards.reduce((s, c) => s + c.quantity, 0) }} cards ·
             <span :class="deck.isPublic ? 'text-green-400' : 'text-gray-500'">
               {{ deck.isPublic ? '🌐 Public' : '🔒 Private' }}
             </span>
           </p>
-        </div>
+        </RouterLink>
 
         <div class="flex items-center gap-2 shrink-0">
           <button

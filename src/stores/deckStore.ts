@@ -105,7 +105,9 @@ export const useDeckStore = defineStore('deck', () => {
         await updateDeckService(activeDeck.value.id, {
           name: activeDeck.value.name,
           cards: activeDeck.value.cards,
-          isPublic: activeDeck.value.isPublic
+          isPublic: activeDeck.value.isPublic,
+          description: activeDeck.value.description,
+          videoUrl: activeDeck.value.videoUrl
         })
       } else {
         const id = await saveDeckService({
@@ -115,7 +117,9 @@ export const useDeckStore = defineStore('deck', () => {
           isPublic: activeDeck.value.isPublic,
           votes: 0,
           ownerName: auth.displayName,
-          ownerPhoto: auth.photoURL
+          ownerPhoto: auth.photoURL,
+          description: activeDeck.value.description,
+          videoUrl: activeDeck.value.videoUrl
         })
         activeDeck.value.id = id
       }
