@@ -32,6 +32,7 @@ const tabs: { key: Tab; label: string }[] = [
 // Card detail modal
 const selectedCard = ref<DigimonCard | null>(null)
 const showModal = ref(false)
+const expandedView = ref(false)
 
 // Voting
 const voted = ref(false)
@@ -101,6 +102,30 @@ const mainCardsByType = computed(() => {
   }
   return result
 })
+
+const displayEggs = computed(() =>
+  expandedView.value
+    ? eggCards.value.flatMap((dc, ci) =>
+        Array.from({ length: dc.quantity }, (_, i) => ({
+          card: dc.card, qty: 1, key: `${dc.card.cardnumber}-${ci}-${i}`,
+        }))
+      )
+    : eggCards.value.map(dc => ({ card: dc.card, qty: dc.quantity, key: dc.card.cardnumber }))
+)
+
+const displayMainByType = computed(() =>
+  mainCardsByType.value.map(group => ({
+    type: group.type,
+    totalCount: group.cards.reduce((s, c) => s + c.quantity, 0),
+    cards: expandedView.value
+      ? group.cards.flatMap((dc, ci) =>
+          Array.from({ length: dc.quantity }, (_, i) => ({
+            card: dc.card, qty: 1, key: `${dc.card.cardnumber}-${ci}-${i}`,
+          }))
+        )
+      : group.cards.map(dc => ({ card: dc.card, qty: dc.quantity, key: dc.card.cardnumber })),
+  }))
+)
 
 // ── Stats ───────────────────────────────────────────────────────────────────
 
@@ -410,6 +435,22 @@ function openCard(card: DigimonCard) {
           <!-- Left: card sections -->
           <div class="flex-1 min-w-0 space-y-8">
 
+            <!-- View toggle -->
+            <div class="flex justify-end">
+              <div class="flex items-center bg-gray-900 border border-gray-800 rounded-lg p-0.5 text-xs font-medium">
+                <button
+                  @click="expandedView = false"
+                  class="px-3 py-1.5 rounded-md transition-colors"
+                  :class="!expandedView ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'"
+                >Grouped</button>
+                <button
+                  @click="expandedView = true"
+                  class="px-3 py-1.5 rounded-md transition-colors"
+                  :class="expandedView ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'"
+                >All copies</button>
+              </div>
+            </div>
+
             <!-- Digi-Egg Deck -->
             <section v-if="eggCards.length > 0">
               <div class="flex items-center gap-3 mb-4">
@@ -418,77 +459,75 @@ function openCard(card: DigimonCard) {
               </div>
               <div class="flex flex-wrap gap-3">
                 <div
-                  v-for="dc in eggCards"
-                  :key="dc.card.cardnumber"
+                  v-for="item in displayEggs"
+                  :key="item.key"
                   class="relative cursor-pointer group"
-                  @click="openCard(dc.card)"
+                  @click="openCard(item.card)"
                 >
                   <div
                     class="w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
-                    :class="cardBorder(dc.card.color)"
+                    :class="cardBorder(item.card.color)"
                   >
                     <div class="aspect-[2/3] bg-gray-800">
                       <img
-                        v-if="dc.card.imgurl"
-                        :src="dc.card.imgurl"
-                        :alt="dc.card.name"
+                        v-if="item.card.imgurl"
+                        :src="item.card.imgurl"
+                        :alt="item.card.name"
                         class="w-full h-full object-cover"
                         loading="lazy"
                       />
                     </div>
                   </div>
                   <div
-                    v-if="dc.quantity > 1"
+                    v-if="item.qty > 1"
                     class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-yellow-400 text-gray-900 text-xs font-bold flex items-center justify-center shadow"
-                  >x{{ dc.quantity }}</div>
+                  >x{{ item.qty }}</div>
                 </div>
               </div>
             </section>
 
             <!-- Main Deck by type -->
-            <section v-for="group in mainCardsByType" :key="group.type">
+            <section v-for="group in displayMainByType" :key="group.type">
               <div class="flex items-center gap-3 mb-4">
                 <h2 class="text-xs font-bold uppercase tracking-widest text-gray-300">{{ group.type }}</h2>
-                <span class="text-xs font-mono text-gray-600">
-                  {{ group.cards.reduce((s, c) => s + c.quantity, 0) }}
-                </span>
+                <span class="text-xs font-mono text-gray-600">{{ group.totalCount }}</span>
               </div>
               <div class="flex flex-wrap gap-3">
                 <div
-                  v-for="dc in group.cards"
-                  :key="dc.card.cardnumber"
+                  v-for="item in group.cards"
+                  :key="item.key"
                   class="relative cursor-pointer group"
-                  @click="openCard(dc.card)"
+                  @click="openCard(item.card)"
                 >
                   <div
                     class="w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
-                    :class="cardBorder(dc.card.color)"
+                    :class="cardBorder(item.card.color)"
                   >
                     <div class="aspect-[2/3] bg-gray-800">
                       <img
-                        v-if="dc.card.imgurl"
-                        :src="dc.card.imgurl"
-                        :alt="dc.card.name"
+                        v-if="item.card.imgurl"
+                        :src="item.card.imgurl"
+                        :alt="item.card.name"
                         class="w-full h-full object-cover"
                         loading="lazy"
                       />
                       <div v-else class="w-full h-full flex items-center justify-center text-gray-500 text-[10px] text-center p-1">
-                        {{ dc.card.name }}
+                        {{ item.card.name }}
                       </div>
                     </div>
                     <!-- Card name bar -->
                     <div class="bg-gray-900/90 px-1.5 py-0.5">
-                      <p class="text-[9px] text-gray-300 truncate">{{ dc.card.name }}</p>
+                      <p class="text-[9px] text-gray-300 truncate">{{ item.card.name }}</p>
                     </div>
                   </div>
                   <!-- Quantity badge -->
                   <div
-                    v-if="dc.quantity > 1"
+                    v-if="item.qty > 1"
                     class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-yellow-400 text-gray-900 text-xs font-bold flex items-center justify-center shadow"
-                  >x{{ dc.quantity }}</div>
-                  <!-- Single qty indicator -->
+                  >x{{ item.qty }}</div>
+                  <!-- Single qty indicator (grouped mode only) -->
                   <div
-                    v-else
+                    v-else-if="!expandedView"
                     class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-gray-700 text-gray-400 text-[10px] font-bold flex items-center justify-center"
                   >1</div>
                 </div>
@@ -700,6 +739,7 @@ function openCard(card: DigimonCard) {
     <CardDetailModal
       v-if="showModal && selectedCard"
       :card="selectedCard"
+      :visible="showModal"
       @close="showModal = false"
     />
 

@@ -1,83 +1,270 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { Deck } from '@/models/Deck'
+import type { DigimonCard } from '@/models/Card'
 
 const props = defineProps<{ deck: Deck }>()
 const emit = defineEmits<{ close: [] }>()
 
-type Layout = '3x3' | '4x4'
-
-const layout = ref<Layout>('3x3')
+// ── Settings ──────────────────────────────────────────────────────────────
+const step        = ref<'settings' | 'preview'>('settings')
 const includeEggs = ref(true)
 
-const COLS: Record<Layout, number> = { '3x3': 3, '4x4': 4 }
-const PER_PAGE: Record<Layout, number> = { '3x3': 9, '4x4': 16 }
+const COLS = 3
+const ROWS = 3
+const PER  = COLS * ROWS   // 9 cards per page
 
-const allCards = computed(() =>
+const allCards = computed<DigimonCard[]>(() =>
   props.deck.cards
     .filter(e => includeEggs.value || e.card.type !== 'Digi-Egg')
-    .flatMap(e => Array(e.quantity).fill(e.card))
+    .flatMap(e => Array<DigimonCard>(e.quantity).fill(e.card))
 )
 
 const pageCount = computed(() =>
-  Math.max(1, Math.ceil(allCards.value.length / PER_PAGE[layout.value]))
+  Math.max(1, Math.ceil(allCards.value.length / PER))
 )
 
-function openPrintPreview() {
-  const cols = COLS[layout.value]
-  const cardSize = cols === 3 ? '63mm' : '47mm'
-  const cardHeight = cols === 3 ? '88mm' : '65mm'
+// ── Preview state ─────────────────────────────────────────────────────────
+const generating  = ref(false)
+const pageUrls    = ref<string[]>([])
+const currentPage = ref(0)
 
-  const cardsHtml = allCards.value
-    .map(c => {
-      const src = `/card-images/${c.cardnumber}.jpg`
-      return `<div class="card"><img src="${src}" alt="${c.name}" onerror="this.style.display='none'" /></div>`
-    })
-    .join('')
+// ── Helpers ───────────────────────────────────────────────────────────────
+function loadImg(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload  = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
+}
+
+// ── Generate canvas pages ─────────────────────────────────────────────────
+async function generatePreview() {
+  generating.value = true
+  step.value = 'preview'
+  pageUrls.value = []
+  currentPage.value = 0
+
+  try {
+    const SCALE = 2
+
+    // ── Real mm → pixel mapping (96 dpi, A4 = 210×297 mm) ──────────────
+    // 1 inch = 25.4 mm  →  96 px/in ÷ 25.4 mm/in = 3.7795 px/mm
+    const PX   = 96 / 25.4                    // px per mm
+    const PAGE_W = Math.round(210 * PX)        // 794 px
+    const PAGE_H = Math.round(297 * PX)        // 1122 px
+
+    // Digimon card size matching digiprintmon.com: 64 mm × 89 mm, 0 mm gutter
+    const REAL_CW = Math.round(64 * PX)        // 242 px
+    const GAP     = 0                          // no gutter between cards
+
+    // 3×3 fixed layout — COLS/ROWS/PER are module-level constants
+    const CARD_W = REAL_CW
+    const CARD_H = Math.round(CARD_W * (89 / 64))
+
+    // Center the grid on the page
+    const gridW  = COLS * CARD_W + (COLS - 1) * GAP
+    const gridH  = ROWS * CARD_H + (ROWS - 1) * GAP
+    const startX = Math.round((PAGE_W - gridW) / 2)
+    const startY = Math.round((PAGE_H - gridH) / 2)
+
+    const urls: string[] = []
+
+    for (let p = 0; p < pageCount.value; p++) {
+      const pageCards = allCards.value.slice(p * PER, (p + 1) * PER)
+
+      const canvas  = document.createElement('canvas')
+      canvas.width  = PAGE_W * SCALE
+      canvas.height = PAGE_H * SCALE
+      const ctx = canvas.getContext('2d')!
+      ctx.scale(SCALE, SCALE)
+
+      // White page background
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, PAGE_W, PAGE_H)
+
+      // Load this page's images in parallel
+      const imgResults = await Promise.allSettled(
+        pageCards.map(c => loadImg(`/card-images/${c.cardnumber}.jpg`))
+      )
+
+      imgResults.forEach((result, idx) => {
+        const col = idx % COLS
+        const row = Math.floor(idx / COLS)
+        const x   = startX + col * (CARD_W + GAP)
+        const y   = startY + row * (CARD_H + GAP)
+
+        // Rounded card clip
+        ctx.save()
+        const r = 6
+        ctx.beginPath()
+        ctx.moveTo(x + r, y);              ctx.lineTo(x + CARD_W - r, y)
+        ctx.quadraticCurveTo(x + CARD_W, y, x + CARD_W, y + r)
+        ctx.lineTo(x + CARD_W, y + CARD_H - r); ctx.quadraticCurveTo(x + CARD_W, y + CARD_H, x + CARD_W - r, y + CARD_H)
+        ctx.lineTo(x + r, y + CARD_H);    ctx.quadraticCurveTo(x, y + CARD_H, x, y + CARD_H - r)
+        ctx.lineTo(x, y + r);             ctx.quadraticCurveTo(x, y, x + r, y)
+        ctx.closePath()
+        ctx.clip()
+
+        if (result.status === 'fulfilled') {
+          ctx.drawImage(result.value, x, y, CARD_W, CARD_H)
+        } else {
+          ctx.fillStyle = '#f3f4f6'
+          ctx.fillRect(x, y, CARD_W, CARD_H)
+          ctx.fillStyle = '#9ca3af'
+          ctx.font = '10px sans-serif'
+          ctx.fillText(pageCards[idx].cardnumber, x + 4, y + CARD_H / 2)
+        }
+        ctx.restore()
+      })
+
+      // Dashed cut-guide lines at every column and row boundary
+      ctx.save()
+      ctx.setLineDash([6, 4])
+      ctx.strokeStyle = '#bbbbbb'
+      ctx.lineWidth = 0.6
+      for (let col = 0; col <= COLS; col++) {
+        const lx = startX + col * CARD_W
+        ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, PAGE_H - 16); ctx.stroke()
+      }
+      for (let row = 0; row <= ROWS; row++) {
+        const ly = startY + row * CARD_H
+        ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(PAGE_W, ly); ctx.stroke()
+      }
+      ctx.restore()
+
+      // Footer
+      ctx.fillStyle = '#9ca3af'
+      ctx.font = '9px system-ui, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(
+        `${props.deck.name}  ·  Page ${p + 1} of ${pageCount.value}  ·  3×3`,
+        PAGE_W / 2, PAGE_H - 8
+      )
+      ctx.textAlign = 'left'
+
+      urls.push(canvas.toDataURL('image/jpeg', 0.92))
+    }
+
+    pageUrls.value = urls
+  } catch (e) {
+    console.error('Proxy generation failed', e)
+  } finally {
+    generating.value = false
+  }
+}
+
+// ── Download PDF — CSS mm layout (exact physical card size) ──────────────
+function downloadPdf() {
+  const cols = COLS
+  const rows = ROWS
+  const per  = PER
+
+  // Card size matching digiprintmon.com: 64 mm × 89 mm, 0 mm gutter
+  const GAP_MM   = 0
+  const cardW_mm = 64
+  const cardH_mm = 89
+
+  const totalPages = Math.ceil(allCards.value.length / per)
+
+  const pagesHtml = Array.from({ length: totalPages }, (_, p) => {
+    const slice = allCards.value.slice(p * per, (p + 1) * per)
+    const cardsHtml = slice.map(c =>
+      `<div class="card"><img src="/card-images/${c.cardnumber}.jpg" alt="${c.cardnumber}" /></div>`
+    ).join('')
+    return (
+      `<div class="page">` +
+        `<div class="grid">${cardsHtml}</div>` +
+        `<div class="footer">${props.deck.name} &nbsp;·&nbsp; Page ${p + 1} / ${totalPages}</div>` +
+      `</div>`
+    )
+  }).join('')
 
   const html = `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
   <title>Proxies – ${props.deck.name}</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: white; font-family: sans-serif; }
-    .header { padding: 8mm 10mm 4mm; font-size: 14pt; font-weight: bold; color: #111; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #fff; font-family: sans-serif; }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
+
     .grid {
       display: grid;
-      grid-template-columns: repeat(${cols}, ${cardSize});
-      gap: 3mm;
-      padding: 0 10mm 10mm;
+      grid-template-columns: repeat(${cols}, ${cardW_mm}mm);
+      grid-auto-rows: ${cardH_mm}mm;
+      gap: ${GAP_MM}mm;
     }
+
     .card {
-      width: ${cardSize};
-      height: ${cardHeight};
-      border: 0.5pt solid #ccc;
-      border-radius: 3mm;
+      width: ${cardW_mm}mm;
+      height: ${cardH_mm}mm;
+      border-radius: 2.5mm;
       overflow: hidden;
-      break-inside: avoid;
-      page-break-inside: avoid;
+      outline: 0.4pt dashed #bbb;
+      outline-offset: 0;
     }
-    .card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    @media print {
-      .header { padding-top: 0; }
-      @page { margin: 10mm; size: A4 portrait; }
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
+
+    .footer {
+      position: absolute;
+      bottom: 4mm;
+      font-size: 6.5pt;
+      color: #aaa;
+      text-align: center;
+    }
+
+    @page { size: A4 portrait; margin: 0; }
+    @media print { body { background: #fff; } }
   </style>
 </head>
 <body>
-  <div class="header">${props.deck.name} — Proxy Cards</div>
-  <div class="grid">${cardsHtml}</div>
-  <script>window.onload = () => window.print()<\/script>
+  ${pagesHtml}
+  <script>
+    window.onload = function () {
+      var imgs = Array.from(document.querySelectorAll('img'))
+      var pending = imgs.length
+      if (!pending) { window.print(); return; }
+      imgs.forEach(function (img) {
+        function done() { if (--pending === 0) window.print(); }
+        if (img.complete) done(); else { img.onload = done; img.onerror = done; }
+      })
+    }
+  <\/script>
 </body>
 </html>`
 
+  // document.write keeps the same origin as the opener → Vite proxy paths work
   const win = window.open('', '_blank')
   if (win) {
     win.document.write(html)
     win.document.close()
   }
+}
+
+function back() {
+  step.value = 'settings'
+  pageUrls.value = []
 }
 </script>
 
@@ -87,39 +274,26 @@ function openPrintPreview() {
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       @mousedown.self="emit('close')"
     >
-      <div class="relative bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm shadow-2xl">
+      <div
+        class="relative bg-gray-900 border border-gray-800 rounded-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-300"
+        :style="{ maxWidth: step === 'preview' ? '640px' : '420px' }"
+      >
         <!-- Close -->
         <button
           @click="emit('close')"
-          class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+          class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors z-10"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
 
-        <div class="p-6">
+        <!-- ─── SETTINGS ──────────────────────────────────────────── -->
+        <div v-if="step === 'settings'" class="p-6">
           <h2 class="text-lg font-bold text-white">Export Proxies</h2>
-          <p class="text-sm text-gray-400 mt-0.5 mb-6">Print-ready proxy cards for your deck</p>
+          <p class="text-sm text-gray-400 mt-0.5 mb-6">Print-ready A4 proxy sheets for your deck</p>
 
-          <!-- Layout -->
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Cards per Sheet</p>
-          <div class="grid grid-cols-2 gap-2 mb-5">
-            <button
-              v-for="opt in (['3x3', '4x4'] as Layout[])"
-              :key="opt"
-              @click="layout = opt"
-              class="py-3 rounded-xl text-sm font-semibold border transition-colors flex flex-col items-center gap-0.5"
-              :class="layout === opt
-                ? 'bg-gray-700 text-white border-gray-500'
-                : 'bg-gray-800 text-gray-400 hover:text-white border-transparent'"
-            >
-              <span>{{ opt }}</span>
-              <span class="text-xs font-normal opacity-60">{{ PER_PAGE[opt] }} cards</span>
-            </button>
-          </div>
-
-          <!-- Display Options -->
+          <!-- Options -->
           <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Options</p>
           <div class="border border-gray-800 rounded-xl overflow-hidden mb-6">
             <div class="flex items-center justify-between px-4 py-3">
@@ -129,12 +303,12 @@ function openPrintPreview() {
               </div>
               <button
                 @click="includeEggs = !includeEggs"
-                class="relative w-10 h-6 rounded-full transition-colors shrink-0"
-                :class="includeEggs ? 'bg-yellow-500' : 'bg-gray-700'"
+                class="relative inline-flex w-11 h-6 rounded-full transition-colors duration-200 shrink-0 focus:outline-none"
+                :style="{ backgroundColor: includeEggs ? '#eab308' : '#374151' }"
               >
                 <span
-                  class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"
-                  :class="includeEggs ? 'translate-x-4' : 'translate-x-0.5'"
+                  class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
+                  :style="{ transform: includeEggs ? 'translateX(20px)' : 'translateX(0px)' }"
                 ></span>
               </button>
             </div>
@@ -142,21 +316,102 @@ function openPrintPreview() {
 
           <!-- Summary -->
           <div class="flex items-center justify-between mb-5 text-sm text-gray-400">
-            <span>{{ allCards.length }} cards total</span>
-            <span>{{ pageCount }} {{ pageCount === 1 ? 'page' : 'pages' }}</span>
+            <span>{{ allCards.length }} cards · {{ pageCount }} {{ pageCount === 1 ? 'page' : 'pages' }} · 3×3</span>
+            <span class="text-xs">A4 portrait</span>
           </div>
 
-          <!-- Print -->
+          <!-- Generate -->
           <button
-            @click="openPrintPreview"
+            @click="generatePreview"
             :disabled="allCards.length === 0"
             class="w-full py-3 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-gray-900 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
-            Open Print Preview
+            Generate Preview
           </button>
+        </div>
+
+        <!-- ─── PREVIEW ────────────────────────────────────────────── -->
+        <div v-else class="p-6">
+          <!-- Back -->
+          <button
+            @click="back"
+            class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-4 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to settings
+          </button>
+
+          <h2 class="text-lg font-bold text-white mb-1">Proxy Preview</h2>
+          <p class="text-sm text-gray-400 mb-4">
+            {{ allCards.length }} cards · {{ pageUrls.length }} {{ pageUrls.length === 1 ? 'page' : 'pages' }} · A4 · 3×3
+          </p>
+
+          <!-- Generating spinner -->
+          <div v-if="generating" class="flex flex-col items-center justify-center py-16 gap-4">
+            <svg class="w-8 h-8 text-yellow-500 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+            <p class="text-sm text-gray-400">Rendering pages…</p>
+          </div>
+
+          <!-- Page image -->
+          <div v-else-if="pageUrls.length" class="space-y-4">
+            <!-- Canvas preview -->
+            <div class="rounded-xl overflow-hidden border border-gray-700 shadow-xl bg-white">
+              <img
+                :src="pageUrls[currentPage]"
+                class="w-full block"
+                :alt="`Page ${currentPage + 1}`"
+              />
+            </div>
+
+            <!-- Page navigation -->
+            <div v-if="pageUrls.length > 1" class="flex items-center justify-center gap-3">
+              <button
+                @click="currentPage--"
+                :disabled="currentPage === 0"
+                class="p-1.5 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <span class="text-sm text-gray-400 min-w-[80px] text-center">
+                Page {{ currentPage + 1 }} / {{ pageUrls.length }}
+              </span>
+              <button
+                @click="currentPage++"
+                :disabled="currentPage === pageUrls.length - 1"
+                class="p-1.5 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Actions -->
+            <div class="grid grid-cols-1 gap-2 pt-1">
+              <button
+                @click="downloadPdf"
+                class="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+                Download PDF
+              </button>
+              <p class="text-xs text-center text-gray-500">
+                Opens a print dialog — choose "Save as PDF" in your browser
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
