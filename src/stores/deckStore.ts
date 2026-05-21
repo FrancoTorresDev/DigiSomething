@@ -102,15 +102,17 @@ export const useDeckStore = defineStore('deck', () => {
     loading.value = true
     try {
       if (activeDeck.value.id) {
-        await updateDeckService(activeDeck.value.id, {
+        const updateData: Partial<Deck> = {
           name: activeDeck.value.name,
           cards: activeDeck.value.cards,
           isPublic: activeDeck.value.isPublic,
           description: activeDeck.value.description,
-          videoUrl: activeDeck.value.videoUrl
-        })
+          videoUrl: activeDeck.value.videoUrl,
+        }
+        if (activeDeck.value.coverCardImage) updateData.coverCardImage = activeDeck.value.coverCardImage
+        await updateDeckService(activeDeck.value.id, updateData)
       } else {
-        const id = await saveDeckService({
+        const newDeckData: Omit<Deck, 'id' | 'createdAt'> = {
           ownerId: auth.user.uid,
           name: activeDeck.value.name,
           cards: activeDeck.value.cards,
@@ -119,9 +121,15 @@ export const useDeckStore = defineStore('deck', () => {
           ownerName: auth.displayName,
           ownerPhoto: auth.photoURL,
           description: activeDeck.value.description,
-          videoUrl: activeDeck.value.videoUrl
-        })
+          videoUrl: activeDeck.value.videoUrl,
+        }
+        if (activeDeck.value.coverCardImage) newDeckData.coverCardImage = activeDeck.value.coverCardImage
+        const id = await saveDeckService(newDeckData)
         activeDeck.value.id = id
+        // Store the deck's shareable QR URL so it's always available
+        const qrCodeUrl = `${window.location.origin}/deck/${id}`
+        activeDeck.value.qrCodeUrl = qrCodeUrl
+        await updateDeckService(id, { qrCodeUrl })
       }
       await loadUserDecks()
     } finally {

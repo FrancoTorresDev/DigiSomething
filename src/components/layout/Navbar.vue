@@ -6,10 +6,13 @@ import { useAuthStore } from '@/stores/authStore'
 
 const auth = useAuthStore()
 const route = useRoute()
-const deckOpen = ref(false)
+const deckOpen   = ref(false)
+const cardsOpen  = ref(false)
 
-const deckRoutes = ['/deck-builder', '/profile']
-const deckActive = () => deckRoutes.some(r => route.path.startsWith(r))
+const deckRoutes  = ['/deck-builder', '/profile']
+const cardRoutes  = ['/gallery', '/sets']
+const deckActive  = () => deckRoutes.some(r => route.path.startsWith(r))
+const cardsActive = () => cardRoutes.some(r => route.path.startsWith(r))
 </script>
 
 <template>
@@ -28,13 +31,59 @@ const deckActive = () => deckRoutes.some(r => route.path.startsWith(r))
       >
         News
       </RouterLink>
-      <RouterLink
-        to="/gallery"
-        class="text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap"
-        active-class="text-white"
-      >
-        Card Gallery
-      </RouterLink>
+
+      <!-- Cards dropdown -->
+      <div class="relative" @mouseenter="cardsOpen = true" @mouseleave="cardsOpen = false">
+        <button
+          class="flex items-center gap-1 text-sm transition-colors whitespace-nowrap"
+          :class="cardsActive() ? 'text-white' : 'text-gray-400 hover:text-white'"
+        >
+          Cards
+          <svg class="w-3 h-3 transition-transform" :class="cardsOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <Transition name="dropdown">
+          <div
+            v-if="cardsOpen"
+            class="absolute left-0 top-full mt-1 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden"
+          >
+            <RouterLink
+              to="/gallery"
+              class="flex items-start gap-3 px-4 py-3 hover:bg-gray-800 transition-colors group"
+              @click="cardsOpen = false"
+            >
+              <span class="mt-0.5 w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+              </span>
+              <div>
+                <p class="text-sm font-semibold text-white">Cards</p>
+                <p class="text-xs text-gray-500">Browse all Digimon cards.</p>
+              </div>
+            </RouterLink>
+
+            <RouterLink
+              to="/sets"
+              class="flex items-start gap-3 px-4 py-3 hover:bg-gray-800 transition-colors group"
+              @click="cardsOpen = false"
+            >
+              <span class="mt-0.5 w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </span>
+              <div>
+                <p class="text-sm font-semibold text-white">Sets</p>
+                <p class="text-xs text-gray-500">Browse cards by set release.</p>
+              </div>
+            </RouterLink>
+          </div>
+        </Transition>
+      </div>
 
       <!-- Decks dropdown -->
       <div class="relative" @mouseenter="deckOpen = true" @mouseleave="deckOpen = false">

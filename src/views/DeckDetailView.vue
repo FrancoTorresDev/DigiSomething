@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useDeckStore } from '@/stores/deckStore'
 import { getDeckById } from '@/services/deckService'
 import { incrementVote, hasUserVoted, recordUserVote } from '@/services/deckService'
 import CardDetailModal from '@/components/cards/CardDetailModal.vue'
+import ExportImageModal from '@/components/deck/ExportImageModal.vue'
+import ExportProxiesModal from '@/components/deck/ExportProxiesModal.vue'
 import type { Deck } from '@/models/Deck'
 import type { DigimonCard } from '@/models/Card'
 
@@ -34,6 +36,20 @@ const showModal = ref(false)
 // Voting
 const voted = ref(false)
 const votingLoading = ref(false)
+
+// Export
+const showExportMenu = ref(false)
+const showExportImageModal = ref(false)
+const showExportProxiesModal = ref(false)
+const exportMenuRef = ref<HTMLElement | null>(null)
+
+function onExportClickOutside(e: MouseEvent) {
+  if (exportMenuRef.value && !exportMenuRef.value.contains(e.target as Node)) {
+    showExportMenu.value = false
+  }
+}
+onMounted(() => document.addEventListener('mousedown', onExportClickOutside))
+onBeforeUnmount(() => document.removeEventListener('mousedown', onExportClickOutside))
 
 onMounted(async () => {
   const id = route.params.id as string
@@ -268,13 +284,53 @@ function openCard(card: DigimonCard) {
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 Build
               </button>
-              <button
-                @click="exportDeck"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-300 border border-gray-700 hover:border-gray-500 rounded-lg transition-colors"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Export
-              </button>
+              <!-- Export dropdown -->
+              <div class="relative" ref="exportMenuRef">
+                <button
+                  @click="showExportMenu = !showExportMenu"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-300 border border-gray-700 hover:border-gray-500 rounded-lg transition-colors"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Export
+                  <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div
+                  v-if="showExportMenu"
+                  class="absolute right-0 top-full mt-1.5 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl z-20 py-1.5 w-52"
+                >
+                  <button
+                    @click="showExportImageModal = true; showExportMenu = false"
+                    class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                  >
+                    <svg class="w-4 h-4 shrink-0 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <div class="text-left">
+                      <p class="font-medium">Deck Image</p>
+                      <p class="text-xs text-gray-500">Shareable visual</p>
+                    </div>
+                  </button>
+                  <button
+                    @click="showExportProxiesModal = true; showExportMenu = false"
+                    class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                  >
+                    <svg class="w-4 h-4 shrink-0 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    <div class="text-left">
+                      <p class="font-medium">Proxy Cards</p>
+                      <p class="text-xs text-gray-500">Print-ready proxies</p>
+                    </div>
+                  </button>
+                  <div class="border-t border-gray-800 my-1"></div>
+                  <button
+                    @click="exportDeck(); showExportMenu = false"
+                    class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                  >
+                    <svg class="w-4 h-4 shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <div class="text-left">
+                      <p class="font-medium">Export JSON</p>
+                      <p class="text-xs text-gray-500">Card list as JSON</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -308,6 +364,21 @@ function openCard(card: DigimonCard) {
             <span class="text-gray-600 text-xs">
               {{ totalMainCount }} main cards · {{ totalEggCount }} eggs
             </span>
+
+            <!-- QR code (always present once deck is saved) -->
+            <a
+              v-if="deck.qrCodeUrl"
+              :href="deck.qrCodeUrl"
+              target="_blank"
+              class="ml-auto shrink-0"
+              title="Scan to open this deck"
+            >
+              <img
+                :src="`https://api.qrserver.com/v1/create-qr-code/?size=48x48&data=${encodeURIComponent(deck.qrCodeUrl)}&bgcolor=111827&color=EAB308&format=png&margin=1`"
+                alt="QR code"
+                class="w-10 h-10 rounded opacity-70 hover:opacity-100 transition-opacity"
+              />
+            </a>
           </div>
 
           <!-- Tabs -->
@@ -630,6 +701,18 @@ function openCard(card: DigimonCard) {
       v-if="showModal && selectedCard"
       :card="selectedCard"
       @close="showModal = false"
+    />
+
+    <!-- Export modals -->
+    <ExportImageModal
+      v-if="showExportImageModal && deck"
+      :deck="deck"
+      @close="showExportImageModal = false"
+    />
+    <ExportProxiesModal
+      v-if="showExportProxiesModal && deck"
+      :deck="deck"
+      @close="showExportProxiesModal = false"
     />
   </div>
 </template>

@@ -74,3 +74,21 @@ export async function getCardByNumber(cardnumber: string): Promise<DigimonCard |
   const exact = cards.find((c) => c.id === cardnumber)
   return exact ? mapCard(exact) : cards.length > 0 ? mapCard(cards[0]) : null
 }
+
+/** Fetch all cards from a specific set by its series name. Paginates automatically. */
+export async function fetchCardsBySeries(series: string): Promise<DigimonCard[]> {
+  const results: DigimonCard[] = []
+  const seen = new Set<string>()
+  let page = 1
+  while (true) {
+    const cards = await searchCards({ series, page, num: 50 })
+    if (!cards.length) break
+    for (const c of cards) {
+      if (!seen.has(c.cardnumber)) { seen.add(c.cardnumber); results.push(c) }
+    }
+    if (cards.length < 50) break
+    page++
+    if (page > 10) break // safety: max 500 cards
+  }
+  return results
+}

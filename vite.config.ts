@@ -31,6 +31,16 @@ export default defineConfig({
         target: 'https://images.digimoncard.io',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/card-images/, '/images/cards')
+      },
+      '/wiki-images': {
+        target: 'https://static.wikia.nocookie.net',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/wiki-images/, '/digimoncardgame/images')
+      },
+      '/qr-api': {
+        target: 'https://api.qrserver.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/qr-api/, '')
       }
     }
   }

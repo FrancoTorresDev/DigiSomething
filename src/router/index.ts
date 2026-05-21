@@ -16,6 +16,16 @@ const router = createRouter({
       component: GalleryView
     },
     {
+      path: '/sets',
+      name: 'sets',
+      component: () => import('@/views/SetsView.vue')
+    },
+    {
+      path: '/sets/:code',
+      name: 'set-detail',
+      component: () => import('@/views/SetDetailView.vue')
+    },
+    {
       path: '/news',
       name: 'news',
       component: () => import('@/views/HomeView.vue')

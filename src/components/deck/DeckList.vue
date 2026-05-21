@@ -36,6 +36,7 @@ const saveName = ref('')
 const saveDescription = ref('')
 const saveVideoUrl = ref('')
 const saveVisibility = ref<'draft' | 'private' | 'public'>('draft')
+const saveCoverImage = ref('')
 const saveError = ref('')
 const savingDeck = ref(false)
 
@@ -64,6 +65,7 @@ async function openSaveModal() {
   saveDescription.value = deck.activeDeck.description ?? ''
   saveVideoUrl.value = deck.activeDeck.videoUrl ?? ''
   saveVisibility.value = deck.activeDeck.isPublic ? 'public' : 'draft'
+  saveCoverImage.value = deck.activeDeck.coverCardImage ?? ''
   saveError.value = ''
   showSaveModal.value = true
 }
@@ -87,6 +89,7 @@ async function handleSave() {
   deck.activeDeck.description = saveDescription.value.trim()
   deck.activeDeck.videoUrl = saveVideoUrl.value.trim()
   deck.activeDeck.isPublic = saveVisibility.value === 'public'
+  deck.activeDeck.coverCardImage = saveCoverImage.value || undefined
   savingDeck.value = true
   try {
     await deck.saveDeck()
@@ -402,6 +405,25 @@ function onGlobalDrop(e: DragEvent) {
             @click="showSaveModal = false"
             class="text-gray-500 hover:text-white transition-colors text-xl leading-none"
           >&times;</button>
+        </div>
+
+        <!-- Cover card picker -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-medium text-gray-300">Cover Digimon</label>
+          <div v-if="deck.activeDeck.cards.filter(e => e.card.type !== 'Digi-Egg').length" class="flex gap-1.5 overflow-x-auto pb-1">
+            <button
+              v-for="entry in deck.activeDeck.cards.filter(e => e.card.type !== 'Digi-Egg')"
+              :key="entry.card.cardnumber"
+              type="button"
+              @click="saveCoverImage = entry.card.imgurl"
+              class="shrink-0 w-12 rounded overflow-hidden border-2 transition-colors"
+              :class="saveCoverImage === entry.card.imgurl ? 'border-yellow-400' : 'border-transparent hover:border-gray-500'"
+            >
+              <img :src="entry.card.imgurl" :alt="entry.card.name" class="w-full aspect-[2/3] object-cover" />
+            </button>
+          </div>
+          <p v-else class="text-[11px] text-gray-600">Add cards to your deck first</p>
+          <p v-if="deck.activeDeck.cards.filter(e => e.card.type !== 'Digi-Egg').length" class="text-[11px] text-gray-600">Click a card to use it as the deck cover</p>
         </div>
 
         <!-- Name -->

@@ -17,4 +17,6 @@ export interface Deck {
   ownerPhoto?: string
   description?: string
   videoUrl?: string
+  coverCardImage?: string
+  qrCodeUrl?: string
 }
