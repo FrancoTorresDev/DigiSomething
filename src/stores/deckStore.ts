@@ -6,7 +6,8 @@ import {
   getUserDecks,
   saveDeck as saveDeckService,
   updateDeck as updateDeckService,
-  deleteDeck as deleteDeckService
+  deleteDeck as deleteDeckService,
+  saveDeckVersion,
 } from '@/services/deckService'
 import { useAuthStore } from './authStore'
 
@@ -102,15 +103,23 @@ export const useDeckStore = defineStore('deck', () => {
     loading.value = true
     try {
       if (activeDeck.value.id) {
+        const nextVersion = (activeDeck.value.currentVersion ?? 1) + 1
         const updateData: Partial<Deck> = {
           name: activeDeck.value.name,
           cards: activeDeck.value.cards,
           isPublic: activeDeck.value.isPublic,
           description: activeDeck.value.description,
           videoUrl: activeDeck.value.videoUrl,
+          currentVersion: nextVersion,
         }
         if (activeDeck.value.coverCardImage) updateData.coverCardImage = activeDeck.value.coverCardImage
         await updateDeckService(activeDeck.value.id, updateData)
+        activeDeck.value.currentVersion = nextVersion
+        await saveDeckVersion(activeDeck.value.id, {
+          versionNumber: nextVersion,
+          label: 'Current Version',
+          cards: activeDeck.value.cards.map((c) => ({ ...c })),
+        })
       } else {
         const newDeckData: Omit<Deck, 'id' | 'createdAt'> = {
           ownerId: auth.user.uid,
@@ -122,14 +131,20 @@ export const useDeckStore = defineStore('deck', () => {
           ownerPhoto: auth.photoURL,
           description: activeDeck.value.description,
           videoUrl: activeDeck.value.videoUrl,
+          currentVersion: 1,
         }
         if (activeDeck.value.coverCardImage) newDeckData.coverCardImage = activeDeck.value.coverCardImage
         const id = await saveDeckService(newDeckData)
         activeDeck.value.id = id
-        // Store the deck's shareable QR URL so it's always available
+        activeDeck.value.currentVersion = 1
         const qrCodeUrl = `${window.location.origin}/deck/${id}`
         activeDeck.value.qrCodeUrl = qrCodeUrl
         await updateDeckService(id, { qrCodeUrl })
+        await saveDeckVersion(id, {
+          versionNumber: 1,
+          label: activeDeck.value.name,
+          cards: activeDeck.value.cards.map((c) => ({ ...c })),
+        })
       }
       await loadUserDecks()
     } finally {

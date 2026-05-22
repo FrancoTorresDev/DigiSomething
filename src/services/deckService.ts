@@ -15,7 +15,7 @@ import {
   serverTimestamp,
   increment
 } from 'firebase/firestore'
-import type { Deck } from '@/models/Deck'
+import type { Deck, DeckVersion, DeckMatch, DeckMatchup } from '@/models/Deck'
 
 const COL = 'decks'
 
@@ -74,4 +74,76 @@ export async function getDeckById(id: string): Promise<Deck | null> {
   const snap = await getDoc(doc(db, COL, id))
   if (!snap.exists()) return null
   return { id: snap.id, ...snap.data() } as Deck
+}
+
+export async function saveDeckVersion(
+  deckId: string,
+  version: Omit<DeckVersion, 'id'>
+): Promise<string> {
+  const ref = await addDoc(collection(db, COL, deckId, 'versions'), {
+    ...version,
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function getDeckVersions(deckId: string): Promise<DeckVersion[]> {
+  const q = query(
+    collection(db, COL, deckId, 'versions'),
+    orderBy('versionNumber', 'asc')
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as DeckVersion)
+}
+
+export async function saveGuide(deckId: string, guide: string): Promise<void> {
+  await updateDoc(doc(db, COL, deckId), { guide })
+}
+
+export async function saveMatch(
+  deckId: string,
+  match: Omit<DeckMatch, 'id'>
+): Promise<string> {
+  const ref = await addDoc(collection(db, COL, deckId, 'matches'), {
+    ...match,
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function getMatches(deckId: string): Promise<DeckMatch[]> {
+  const q = query(
+    collection(db, COL, deckId, 'matches'),
+    orderBy('createdAt', 'desc')
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as DeckMatch)
+}
+
+export async function deleteMatch(deckId: string, matchId: string): Promise<void> {
+  await deleteDoc(doc(db, COL, deckId, 'matches', matchId))
+}
+
+export async function saveMatchup(
+  deckId: string,
+  matchup: Omit<DeckMatchup, 'id'>
+): Promise<string> {
+  const ref = await addDoc(collection(db, COL, deckId, 'matchups'), {
+    ...matchup,
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function getMatchups(deckId: string): Promise<DeckMatchup[]> {
+  const q = query(
+    collection(db, COL, deckId, 'matchups'),
+    orderBy('createdAt', 'desc')
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as DeckMatchup)
+}
+
+export async function deleteMatchup(deckId: string, matchupId: string): Promise<void> {
+  await deleteDoc(doc(db, COL, deckId, 'matchups', matchupId))
 }

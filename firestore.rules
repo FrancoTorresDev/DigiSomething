@@ -22,6 +22,34 @@ service cloud.firestore {
                     );
       allow delete: if request.auth != null
                     && request.auth.uid == resource.data.ownerId;
+
+      match /versions/{versionId} {
+        allow read: if get(/databases/$(database)/documents/decks/$(deckId)).data.isPublic == true
+                    || (request.auth != null
+                        && request.auth.uid == get(/databases/$(database)/documents/decks/$(deckId)).data.ownerId);
+        allow create: if request.auth != null
+                      && request.auth.uid == get(/databases/$(database)/documents/decks/$(deckId)).data.ownerId;
+      }
+
+      match /matches/{matchId} {
+        allow read: if get(/databases/$(database)/documents/decks/$(deckId)).data.isPublic == true
+                    || (request.auth != null
+                        && request.auth.uid == get(/databases/$(database)/documents/decks/$(deckId)).data.ownerId);
+        allow create: if request.auth != null
+                      && request.auth.uid == get(/databases/$(database)/documents/decks/$(deckId)).data.ownerId;
+        allow delete: if request.auth != null
+                      && request.auth.uid == get(/databases/$(database)/documents/decks/$(deckId)).data.ownerId;
+      }
+
+      match /matchups/{matchupId} {
+        allow read: if get(/databases/$(database)/documents/decks/$(deckId)).data.isPublic == true
+                    || (request.auth != null
+                        && request.auth.uid == get(/databases/$(database)/documents/decks/$(deckId)).data.ownerId);
+        allow create: if request.auth != null
+                      && request.auth.uid == get(/databases/$(database)/documents/decks/$(deckId)).data.ownerId;
+        allow delete: if request.auth != null
+                      && request.auth.uid == get(/databases/$(database)/documents/decks/$(deckId)).data.ownerId;
+      }
     }
   }
 }

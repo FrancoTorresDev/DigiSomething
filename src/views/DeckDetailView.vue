@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useDeckStore } from '@/stores/deckStore'
 import { getDeckById } from '@/services/deckService'
-import { incrementVote, hasUserVoted, recordUserVote } from '@/services/deckService'
+import { incrementVote, hasUserVoted, recordUserVote, saveGuide, saveMatch, getMatches, deleteMatch, saveMatchup, getMatchups, deleteMatchup } from '@/services/deckService'
 import CardDetailModal from '@/components/cards/CardDetailModal.vue'
 import ExportImageModal from '@/components/deck/ExportImageModal.vue'
 import ExportProxiesModal from '@/components/deck/ExportProxiesModal.vue'
-import type { Deck } from '@/models/Deck'
+import DeckVersionsTab from '@/components/deck/DeckVersionsTab.vue'
+import type { Deck, DeckMatch, DeckMatchup } from '@/models/Deck'
 import type { DigimonCard } from '@/models/Card'
 
 const route = useRoute()
@@ -20,13 +21,14 @@ const deck = ref<Deck | null>(null)
 const loading = ref(true)
 const notFound = ref(false)
 
-type Tab = 'deck' | 'guide' | 'matchups' | 'matches'
+type Tab = 'deck' | 'guide' | 'matchups' | 'matches' | 'versions'
 const activeTab = ref<Tab>('deck')
 const tabs: { key: Tab; label: string }[] = [
   { key: 'deck', label: 'Deck' },
   { key: 'guide', label: 'Guide' },
   { key: 'matchups', label: 'Matchups' },
   { key: 'matches', label: 'Matches' },
+  { key: 'versions', label: 'Versions' },
 ]
 
 // Card detail modal
@@ -63,6 +65,15 @@ onMounted(async () => {
     }
   } finally {
     loading.value = false
+  }
+})
+
+watch(activeTab, (tab) => {
+  if (tab === 'matches' && matches.value.length === 0 && !matchesLoading.value) {
+    loadMatches()
+  }
+  if (tab === 'matchups' && matchups.value.length === 0 && !matchupsLoading.value) {
+    loadMatchups()
   }
 })
 
@@ -270,6 +281,240 @@ async function vote() {
 function openCard(card: DigimonCard) {
   selectedCard.value = card
   showModal.value = true
+}
+
+// ── Guide ───────────────────────────────────────────────────────────────────
+
+const guideEditing = ref(false)
+const guideDraft = ref('')
+const guideSaving = ref(false)
+
+function startEditGuide() {
+  guideDraft.value = deck.value?.guide ?? ''
+  guideEditing.value = true
+}
+
+function cancelEditGuide() {
+  guideEditing.value = false
+  guideDraft.value = ''
+}
+
+async function handleSaveGuide() {
+  if (!deck.value) return
+  guideSaving.value = true
+  try {
+    await saveGuide(deck.value.id, guideDraft.value.trim())
+    deck.value.guide = guideDraft.value.trim()
+    guideEditing.value = false
+  } finally {
+    guideSaving.value = false
+  }
+}
+
+// ── Matches ─────────────────────────────────────────────────────────────────
+
+const DIGIMON_COLORS = ['Red', 'Blue', 'Yellow', 'Green', 'Black', 'Purple', 'White']
+const COLOR_DOT: Record<string, string> = {
+  Red: 'bg-red-500', Blue: 'bg-blue-500', Yellow: 'bg-yellow-400',
+  Green: 'bg-green-500', Black: 'bg-gray-500', Purple: 'bg-purple-500', White: 'bg-gray-200',
+}
+
+const matches = ref<DeckMatch[]>([])
+const matchesLoading = ref(false)
+const showAddMatchModal = ref(false)
+const addMatchSaving = ref(false)
+const addMatchError = ref('')
+
+// Form state
+const matchOpponentColors = ref<string[]>([])
+const matchOpponentDeckName = ref('')
+const matchOpponentName = ref('')
+const matchWonGames = ref(0)
+const matchLostGames = ref(0)
+const matchIsDraw = ref(false)
+const matchWonDice = ref(false)
+const matchNotes = ref('')
+
+async function loadMatches() {
+  if (!deck.value) return
+  matchesLoading.value = true
+  try {
+    matches.value = await getMatches(deck.value.id)
+  } finally {
+    matchesLoading.value = false
+  }
+}
+
+function openAddMatch() {
+  matchOpponentColors.value = []
+  matchOpponentDeckName.value = ''
+  matchOpponentName.value = ''
+  matchWonGames.value = 0
+  matchLostGames.value = 0
+  matchIsDraw.value = false
+  matchWonDice.value = false
+  matchNotes.value = ''
+  addMatchError.value = ''
+  showAddMatchModal.value = true
+}
+
+function toggleMatchColor(color: string) {
+  const idx = matchOpponentColors.value.indexOf(color)
+  if (idx === -1) {
+    if (matchOpponentColors.value.length < 3) matchOpponentColors.value.push(color)
+  } else {
+    matchOpponentColors.value.splice(idx, 1)
+  }
+}
+
+function computeResult(): DeckMatch['result'] {
+  if (matchIsDraw.value) return 'draw'
+  if (matchWonGames.value > matchLostGames.value) return 'win'
+  return 'loss'
+}
+
+async function handleAddMatch() {
+  if (!deck.value) return
+  if (!matchOpponentColors.value.length) { addMatchError.value = 'Select at least one opponent deck color.'; return }
+  if (!matchIsDraw.value && matchWonGames.value === 0 && matchLostGames.value === 0) {
+    addMatchError.value = 'Enter the match score.'
+    return
+  }
+  addMatchSaving.value = true
+  addMatchError.value = ''
+  try {
+    const payload: Omit<DeckMatch, 'id'> = {
+      opponentColors: [...matchOpponentColors.value],
+      wonGames: matchIsDraw.value ? 0 : matchWonGames.value,
+      lostGames: matchIsDraw.value ? 0 : matchLostGames.value,
+      result: computeResult(),
+      wonDiceRoll: matchWonDice.value,
+    }
+    if (matchOpponentDeckName.value.trim()) payload.opponentDeckName = matchOpponentDeckName.value.trim()
+    if (matchOpponentName.value.trim()) payload.opponentName = matchOpponentName.value.trim()
+    if (matchNotes.value.trim()) payload.notes = matchNotes.value.trim()
+    const id = await saveMatch(deck.value.id, payload)
+    matches.value.unshift({ id, ...payload })
+    showAddMatchModal.value = false
+  } finally {
+    addMatchSaving.value = false
+  }
+}
+
+async function handleDeleteMatch(matchId: string) {
+  if (!deck.value) return
+  await deleteMatch(deck.value.id, matchId)
+  matches.value = matches.value.filter((m) => m.id !== matchId)
+}
+
+const matchStats = computed(() => {
+  const total = matches.value.length
+  const wins = matches.value.filter((m) => m.result === 'win').length
+  const losses = matches.value.filter((m) => m.result === 'loss').length
+  const draws = matches.value.filter((m) => m.result === 'draw').length
+  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0
+  return { total, wins, losses, draws, winRate }
+})
+
+// ── Matchups ─────────────────────────────────────────────────────────────────
+
+const matchups = ref<DeckMatchup[]>([])
+const matchupsLoading = ref(false)
+const showAddMatchupModal = ref(false)
+const addMatchupSaving = ref(false)
+const addMatchupError = ref('')
+const expandedMatchup = ref<string | null>(null)
+
+// Form state
+const muTitle = ref('')
+const muOpponentColors = ref<string[]>([])
+const muOpponentDeckName = ref('')
+const muDifficulty = ref<DeckMatchup['difficulty']>('even')
+const muNotesFirst = ref('')
+const muNotesSecond = ref('')
+const muActiveNoteTab = ref<'first' | 'second'>('first')
+
+const DIFFICULTY_OPTIONS: { key: DeckMatchup['difficulty']; label: string }[] = [
+  { key: 'favored', label: 'Favored' },
+  { key: 'even', label: 'Even' },
+  { key: 'unfavored', label: 'Unfavored' },
+]
+
+const DIFFICULTY_STYLE: Record<DeckMatchup['difficulty'], string> = {
+  favored:   'bg-green-500/20 text-green-400 border-green-600/50',
+  even:      'bg-yellow-500/20 text-yellow-400 border-yellow-600/50',
+  unfavored: 'bg-red-500/20 text-red-400 border-red-600/50',
+}
+
+async function loadMatchups() {
+  if (!deck.value) return
+  matchupsLoading.value = true
+  try {
+    matchups.value = await getMatchups(deck.value.id)
+  } finally {
+    matchupsLoading.value = false
+  }
+}
+
+function openAddMatchup() {
+  muTitle.value = ''
+  muOpponentColors.value = []
+  muOpponentDeckName.value = ''
+  muDifficulty.value = 'even'
+  muNotesFirst.value = ''
+  muNotesSecond.value = ''
+  muActiveNoteTab.value = 'first'
+  addMatchupError.value = ''
+  showAddMatchupModal.value = true
+}
+
+function toggleMatchupColor(color: string) {
+  const idx = muOpponentColors.value.indexOf(color)
+  if (idx === -1) {
+    if (muOpponentColors.value.length < 3) muOpponentColors.value.push(color)
+  } else {
+    muOpponentColors.value.splice(idx, 1)
+  }
+}
+
+async function handleAddMatchup() {
+  if (!deck.value) return
+  if (!muTitle.value.trim() && muOpponentColors.value.length === 0) {
+    addMatchupError.value = 'Please provide a title or select at least one color.'
+    return
+  }
+  addMatchupSaving.value = true
+  addMatchupError.value = ''
+  try {
+    const payload: Omit<DeckMatchup, 'id'> = {
+      difficulty: muDifficulty.value,
+      opponentColors: [...muOpponentColors.value],
+    }
+    if (muTitle.value.trim()) payload.title = muTitle.value.trim()
+    if (muOpponentDeckName.value.trim()) payload.opponentDeckName = muOpponentDeckName.value.trim()
+    if (muNotesFirst.value.trim()) payload.notesGoingFirst = muNotesFirst.value.trim()
+    if (muNotesSecond.value.trim()) payload.notesGoingSecond = muNotesSecond.value.trim()
+    const id = await saveMatchup(deck.value.id, payload)
+    matchups.value.unshift({ id, ...payload })
+    showAddMatchupModal.value = false
+  } finally {
+    addMatchupSaving.value = false
+  }
+}
+
+async function handleDeleteMatchup(matchupId: string) {
+  if (!deck.value) return
+  await deleteMatchup(deck.value.id, matchupId)
+  matchups.value = matchups.value.filter((m) => m.id !== matchupId)
+  if (expandedMatchup.value === matchupId) expandedMatchup.value = null
+}
+
+function matchupDisplayTitle(mu: DeckMatchup): string {
+  if (mu.title) return mu.title
+  const parts: string[] = []
+  if (mu.opponentColors.length) parts.push(mu.opponentColors.join(' / '))
+  if (mu.opponentDeckName) parts.push(mu.opponentDeckName)
+  return parts.join(' · ') || 'Untitled Matchup'
 }
 </script>
 
@@ -684,52 +929,274 @@ function openCard(card: DigimonCard) {
         <!-- ── GUIDE TAB ─────────────────────────────────────────────────────── -->
         <div v-else-if="activeTab === 'guide'">
           <section class="mb-10">
-            <h2 class="text-xs font-bold uppercase tracking-widest text-white mb-4">Guide</h2>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
+            <!-- Header row -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <h2 class="text-xs font-bold uppercase tracking-widest text-white">Guide</h2>
+                <span v-if="guideEditing" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-600/40 uppercase tracking-wider">Editing</span>
+              </div>
+              <!-- Edit controls -->
+              <div v-if="isOwner" class="flex items-center gap-2">
+                <template v-if="guideEditing">
+                  <button @click="cancelEditGuide" class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Cancel
+                  </button>
+                  <button @click="handleSaveGuide" :disabled="guideSaving" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    {{ guideSaving ? 'Saving…' : 'Save Guide' }}
+                  </button>
+                </template>
+                <button v-else @click="startEditGuide" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-yellow-400 border border-yellow-700 bg-yellow-950/40 hover:bg-yellow-900/50 rounded-lg transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  {{ deck.guide ? 'Edit Guide' : 'Write a guide' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Editor -->
+            <div v-if="guideEditing">
+              <textarea
+                v-model="guideDraft"
+                rows="14"
+                placeholder="Start writing your guide…"
+                class="w-full bg-gray-900 border border-yellow-600/40 text-gray-200 text-sm rounded-xl px-5 py-4 focus:outline-none focus:border-yellow-500 resize-none leading-relaxed placeholder:text-gray-600"
+              />
+            </div>
+
+            <!-- Display -->
+            <div v-else-if="deck.guide" class="bg-gray-900 border border-gray-800 rounded-xl px-6 py-5 text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+              {{ deck.guide }}
+            </div>
+
+            <!-- Empty state -->
+            <div v-else class="bg-gray-900 border border-gray-800 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
               <svg class="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
               </svg>
               <p class="text-gray-400 font-medium">No guide yet</p>
               <p class="text-sm text-gray-600">Share how to pilot this deck with the community.</p>
-              <button v-if="isOwner" class="mt-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 text-sm font-semibold rounded-lg transition-colors">
-                Write a guide
-              </button>
             </div>
           </section>
         </div>
 
         <!-- ── MATCHUPS TAB ──────────────────────────────────────────────────── -->
         <div v-else-if="activeTab === 'matchups'">
-          <section class="mb-10">
-            <h2 class="text-xs font-bold uppercase tracking-widest text-white mb-4">Matchups</h2>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
+          <section class="mb-10 space-y-5">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+              <h2 class="text-xs font-bold uppercase tracking-widest text-white">Matchup Guide</h2>
+              <button v-if="isOwner" @click="openAddMatchup" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-yellow-600 hover:bg-yellow-500 text-gray-950 rounded-lg transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                New Matchup
+              </button>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="matchupsLoading" class="flex justify-center py-10">
+              <div class="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+
+            <!-- Matchup cards -->
+            <div v-else-if="matchups.length > 0" class="space-y-2">
+              <div
+                v-for="mu in matchups"
+                :key="mu.id"
+                class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden"
+              >
+                <!-- Card header (always visible) -->
+                <button
+                  class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-800/60 transition-colors text-left"
+                  @click="expandedMatchup = expandedMatchup === mu.id ? null : mu.id"
+                >
+                  <!-- Color dots -->
+                  <div class="flex items-center gap-1 shrink-0">
+                    <span
+                      v-for="color in mu.opponentColors"
+                      :key="color"
+                      class="w-3 h-3 rounded-full border border-black/30"
+                      :class="COLOR_DOT[color] ?? 'bg-gray-500'"
+                    />
+                    <span v-if="mu.opponentColors.length === 0" class="w-3 h-3 rounded-full bg-gray-700" />
+                  </div>
+
+                  <!-- Title + archetype -->
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-white truncate">{{ matchupDisplayTitle(mu) }}</p>
+                    <p v-if="mu.opponentDeckName && mu.title" class="text-xs text-gray-500 truncate">{{ mu.opponentDeckName }}</p>
+                  </div>
+
+                  <!-- Difficulty badge -->
+                  <span
+                    class="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full border uppercase tracking-wider"
+                    :class="DIFFICULTY_STYLE[mu.difficulty]"
+                  >{{ mu.difficulty }}</span>
+
+                  <!-- Note indicators -->
+                  <div class="flex items-center gap-1 shrink-0">
+                    <span v-if="mu.notesGoingFirst" class="w-1.5 h-1.5 rounded-full bg-yellow-500" title="Has Going First notes" />
+                    <span v-if="mu.notesGoingSecond" class="w-1.5 h-1.5 rounded-full bg-blue-400" title="Has Going Second notes" />
+                  </div>
+
+                  <!-- Chevron -->
+                  <svg
+                    class="w-4 h-4 text-gray-600 transition-transform duration-200 shrink-0"
+                    :class="expandedMatchup === mu.id ? 'rotate-180' : ''"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  ><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+
+                <!-- Expanded notes -->
+                <div v-if="expandedMatchup === mu.id" class="border-t border-gray-800 px-4 pb-4 pt-3 space-y-4">
+                  <!-- Going First / Second tabs -->
+                  <div class="flex items-center gap-0 border-b border-gray-800 -mx-4 px-4">
+                    <span class="text-xs font-semibold py-2 pr-4 border-b-2 border-yellow-400 text-yellow-400">Going First</span>
+                    <span class="text-xs text-gray-600 py-2 px-4 border-b-2 border-transparent">Going Second</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <p class="text-[10px] uppercase tracking-widest text-yellow-500 mb-2 font-semibold">Going First</p>
+                      <p v-if="mu.notesGoingFirst" class="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{{ mu.notesGoingFirst }}</p>
+                      <p v-else class="text-sm text-gray-600 italic">No notes yet.</p>
+                    </div>
+                    <div>
+                      <p class="text-[10px] uppercase tracking-widest text-blue-400 mb-2 font-semibold">Going Second</p>
+                      <p v-if="mu.notesGoingSecond" class="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{{ mu.notesGoingSecond }}</p>
+                      <p v-else class="text-sm text-gray-600 italic">No notes yet.</p>
+                    </div>
+                  </div>
+                  <div v-if="isOwner" class="flex justify-end pt-1">
+                    <button @click="handleDeleteMatchup(mu.id)" class="text-xs text-gray-600 hover:text-red-400 transition-colors flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div v-else class="bg-gray-900 border border-gray-800 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
               <svg class="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
               </svg>
               <p class="text-gray-400 font-medium">No matchup notes yet</p>
-              <p class="text-sm text-gray-600">Document your experience against other decks to help readers.</p>
-              <button v-if="isOwner" class="mt-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 text-sm font-semibold rounded-lg transition-colors">
-                Add matchup
-              </button>
+              <p class="text-sm text-gray-600">Document your experience against different deck colors to help readers.</p>
             </div>
           </section>
         </div>
 
         <!-- ── MATCHES TAB ───────────────────────────────────────────────────── -->
         <div v-else-if="activeTab === 'matches'">
-          <section class="mb-10">
-            <h2 class="text-xs font-bold uppercase tracking-widest text-white mb-4">Matches</h2>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
+          <section class="mb-10 space-y-5">
+
+            <!-- Stats bar -->
+            <div v-if="matches.length > 0" class="grid grid-cols-4 gap-3">
+              <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+                <p class="text-2xl font-bold text-white">{{ matchStats.total }}</p>
+                <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Games</p>
+              </div>
+              <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+                <p class="text-2xl font-bold text-green-400">{{ matchStats.wins }}</p>
+                <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Wins</p>
+              </div>
+              <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+                <p class="text-2xl font-bold text-red-400">{{ matchStats.losses }}</p>
+                <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Losses</p>
+              </div>
+              <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+                <p class="text-2xl font-bold" :class="matchStats.winRate >= 50 ? 'text-yellow-400' : 'text-gray-400'">
+                  {{ matchStats.winRate }}%
+                </p>
+                <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Win Rate</p>
+              </div>
+            </div>
+
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+              <h2 class="text-xs font-bold uppercase tracking-widest text-white">Match History</h2>
+              <button v-if="isOwner" @click="openAddMatch" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-yellow-600 hover:bg-yellow-500 text-gray-950 rounded-lg transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Record match
+              </button>
+            </div>
+
+            <!-- Loading -->
+            <div v-if="matchesLoading" class="flex justify-center py-10">
+              <div class="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+
+            <!-- Match list -->
+            <div v-else-if="matches.length > 0" class="space-y-2">
+              <div
+                v-for="match in matches"
+                :key="match.id"
+                class="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-center gap-4"
+              >
+                <!-- Result badge -->
+                <span
+                  class="shrink-0 w-12 text-center text-xs font-bold py-1 rounded-lg uppercase tracking-wider"
+                  :class="{
+                    'bg-green-500/20 text-green-400 border border-green-600/50': match.result === 'win',
+                    'bg-red-500/20 text-red-400 border border-red-600/50': match.result === 'loss',
+                    'bg-gray-700 text-gray-400 border border-gray-600': match.result === 'draw',
+                  }"
+                >{{ match.result === 'win' ? 'WIN' : match.result === 'loss' ? 'LOSS' : 'DRAW' }}</span>
+
+                <!-- Color dots + opponent info -->
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                  <div class="flex items-center gap-0.5 shrink-0">
+                    <span
+                      v-for="color in match.opponentColors"
+                      :key="color"
+                      class="w-3 h-3 rounded-full border border-black/30"
+                      :class="COLOR_DOT[color] ?? 'bg-gray-500'"
+                    />
+                    <span v-if="!match.opponentColors?.length" class="w-3 h-3 rounded-full bg-gray-600" />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm text-white font-medium truncate">
+                      {{ (match.opponentColors ?? []).join(' / ') || 'Unknown' }}
+                      <span v-if="match.opponentDeckName" class="text-gray-400 font-normal"> · {{ match.opponentDeckName }}</span>
+                    </p>
+                    <p v-if="match.opponentName" class="text-xs text-gray-500 truncate">vs {{ match.opponentName }}</p>
+                  </div>
+                </div>
+
+                <!-- Score -->
+                <div v-if="match.result !== 'draw'" class="shrink-0 text-sm font-mono font-semibold text-gray-300">
+                  <span class="text-green-400">{{ match.wonGames }}</span>
+                  <span class="text-gray-600"> — </span>
+                  <span class="text-red-400">{{ match.lostGames }}</span>
+                </div>
+
+                <!-- Dice icon -->
+                <svg v-if="match.wonDiceRoll" class="shrink-0 w-4 h-4 text-yellow-500" title="Won dice roll" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5zm2 4a1 1 0 110 2 1 1 0 010-2zm10 0a1 1 0 110 2 1 1 0 010-2zM12 11a1 1 0 110 2 1 1 0 010-2zm-5 4a1 1 0 110 2 1 1 0 010-2zm10 0a1 1 0 110 2 1 1 0 010-2z"/>
+                </svg>
+
+                <!-- Delete (owner only) -->
+                <button v-if="isOwner" @click="handleDeleteMatch(match.id)" class="shrink-0 text-gray-700 hover:text-red-400 transition-colors" title="Delete match">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div v-else class="bg-gray-900 border border-gray-800 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
               <svg class="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               <p class="text-gray-400 font-medium">No matches recorded yet</p>
-              <p class="text-sm text-gray-600">Track your game results to see your win rate and performance against different matchups.</p>
-              <button v-if="isOwner" class="mt-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 text-sm font-semibold rounded-lg transition-colors">
-                Record match
-              </button>
+              <p class="text-sm text-gray-600">Track your game results to see your win rate and performance.</p>
             </div>
           </section>
+        </div>
+
+        <!-- ── VERSIONS TAB ──────────────────────────────────────────────────── -->
+        <div v-else-if="activeTab === 'versions'">
+          <DeckVersionsTab :deck-id="deck.id" :current-version="deck.currentVersion" />
         </div>
 
       </div>
@@ -754,5 +1221,258 @@ function openCard(card: DigimonCard) {
       :deck="deck"
       @close="showExportProxiesModal = false"
     />
+
+    <!-- ── Add Match Modal ─────────────────────────────────────────────────── -->
+    <Teleport to="body">
+      <div
+        v-if="showAddMatchModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+        @click.self="showAddMatchModal = false"
+      >
+        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.09 6.41H21l-5.47 3.97 2.09 6.41L12 14.82l-5.62 4.07 2.09-6.41L3 8.41h6.91z"/></svg>
+              <h2 class="text-white font-semibold text-base">Add Match Result</h2>
+            </div>
+            <button @click="showAddMatchModal = false" class="text-gray-500 hover:text-white text-xl leading-none">&times;</button>
+          </div>
+          <p class="text-xs text-gray-500 -mt-3">Record the outcome of your match to track your performance.</p>
+
+          <!-- Opponent color -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-medium text-gray-300">Opponent Deck Colors <span class="text-yellow-400">*</span> <span class="text-gray-600">(up to 3)</span></label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="color in DIGIMON_COLORS"
+                :key="color"
+                @click="toggleMatchColor(color)"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors"
+                :class="matchOpponentColors.includes(color)
+                  ? 'border-yellow-500 bg-yellow-500/10 text-white'
+                  : 'border-gray-700 text-gray-400 hover:border-gray-500'"
+              >
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="COLOR_DOT[color]" />
+                {{ color }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Deck name (optional) -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-300">Opponent Deck Archetype <span class="text-gray-600">(optional)</span></label>
+            <input v-model="matchOpponentDeckName" type="text" placeholder="e.g. Agumon, BanchoLilimon…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none" />
+          </div>
+
+          <!-- Opponent name (optional) -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-300">
+              <span class="inline-flex items-center gap-1">
+                <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                Opponent Name <span class="text-gray-600">(optional)</span>
+              </span>
+            </label>
+            <input v-model="matchOpponentName" type="text" placeholder="Enter username…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none" />
+          </div>
+
+          <!-- Match result -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-medium text-gray-300">Match Result <span class="text-yellow-400">*</span></label>
+            <div class="bg-gray-800 border border-gray-700 rounded-xl p-4">
+              <div class="flex items-center justify-center gap-8 mb-3">
+                <!-- WON counter -->
+                <div class="flex flex-col items-center gap-2">
+                  <span class="text-xs font-semibold text-green-400 uppercase tracking-widest">WON</span>
+                  <div class="flex items-center gap-3">
+                    <button @click="matchWonGames = Math.max(0, matchWonGames - 1)" :disabled="matchIsDraw" class="text-gray-500 hover:text-white disabled:opacity-30 text-lg leading-none">−</button>
+                    <span class="text-3xl font-bold text-green-400 w-8 text-center tabular-nums">{{ matchIsDraw ? '—' : matchWonGames }}</span>
+                    <button @click="matchWonGames++" :disabled="matchIsDraw" class="text-gray-500 hover:text-white disabled:opacity-30 text-lg leading-none">+</button>
+                  </div>
+                </div>
+                <span class="text-gray-600 text-xl font-light">—</span>
+                <!-- LOST counter -->
+                <div class="flex flex-col items-center gap-2">
+                  <span class="text-xs font-semibold text-red-400 uppercase tracking-widest">LOST</span>
+                  <div class="flex items-center gap-3">
+                    <button @click="matchLostGames = Math.max(0, matchLostGames - 1)" :disabled="matchIsDraw" class="text-gray-500 hover:text-white disabled:opacity-30 text-lg leading-none">−</button>
+                    <span class="text-3xl font-bold text-red-400 w-8 text-center tabular-nums">{{ matchIsDraw ? '—' : matchLostGames }}</span>
+                    <button @click="matchLostGames++" :disabled="matchIsDraw" class="text-gray-500 hover:text-white disabled:opacity-30 text-lg leading-none">+</button>
+                  </div>
+                </div>
+              </div>
+              <p v-if="!matchIsDraw" class="text-center text-xs text-gray-600">Enter score</p>
+              <!-- Intentional Draw -->
+              <button
+                @click="matchIsDraw = !matchIsDraw"
+                class="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg border text-xs font-medium transition-colors"
+                :class="matchIsDraw
+                  ? 'border-yellow-600/60 bg-yellow-500/10 text-yellow-400'
+                  : 'border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h8"/></svg>
+                Intentional Draw
+              </button>
+            </div>
+          </div>
+
+          <!-- Won dice roll -->
+          <label class="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 cursor-pointer hover:border-gray-500 transition-colors">
+            <input v-model="matchWonDice" type="checkbox" class="w-4 h-4 accent-yellow-500" />
+            <div class="flex items-center gap-2 text-sm text-gray-300">
+              <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5zm2 4a1 1 0 110 2 1 1 0 010-2zm10 0a1 1 0 110 2 1 1 0 010-2zM12 11a1 1 0 110 2 1 1 0 010-2zm-5 4a1 1 0 110 2 1 1 0 010-2zm10 0a1 1 0 110 2 1 1 0 010-2z"/></svg>
+              Won the dice roll
+            </div>
+          </label>
+
+          <!-- Notes -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-300">Notes <span class="text-gray-600">(optional)</span></label>
+            <textarea v-model="matchNotes" rows="2" placeholder="Key plays, observations…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none resize-none" />
+          </div>
+
+          <p v-if="addMatchError" class="text-xs text-red-400">{{ addMatchError }}</p>
+
+          <div class="flex gap-2 justify-end pt-1">
+            <button @click="showAddMatchModal = false" class="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-4 py-2 transition-colors">Cancel</button>
+            <button @click="handleAddMatch" :disabled="addMatchSaving" class="text-xs font-semibold bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 rounded-lg px-5 py-2 transition-colors">
+              {{ addMatchSaving ? 'Saving…' : 'Add Match' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ── Add Matchup Modal ────────────────────────────────────────────────── -->
+    <Teleport to="body">
+      <div
+        v-if="showAddMatchupModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+        @click.self="showAddMatchupModal = false"
+      >
+        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+              <h2 class="text-white font-semibold text-base">New Matchup</h2>
+            </div>
+            <button @click="showAddMatchupModal = false" class="text-gray-500 hover:text-white text-xl leading-none">&times;</button>
+          </div>
+          <p class="text-xs text-gray-500 -mt-3">Document your strategy against a specific deck or color combination.</p>
+
+          <!-- Custom Title (optional) -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-300">Custom Title <span class="text-gray-600">(optional)</span></label>
+            <input v-model="muTitle" type="text" maxlength="60" placeholder="e.g. Agumon Bond, Lilithmon Loop…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none" />
+          </div>
+
+          <!-- Opponent Colors (up to 3) -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-medium text-gray-300">
+              Opponent Colors
+              <span class="text-gray-600">(up to 3)</span>
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="color in DIGIMON_COLORS"
+                :key="color"
+                @click="toggleMatchupColor(color)"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors"
+                :class="muOpponentColors.includes(color)
+                  ? 'border-yellow-500 bg-yellow-500/10 text-white'
+                  : 'border-gray-700 text-gray-400 hover:border-gray-500'"
+              >
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="COLOR_DOT[color]" />
+                {{ color }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Opponent Deck Archetype (optional) -->
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-300">Opponent Deck Archetype <span class="text-gray-600">(optional)</span></label>
+            <input v-model="muOpponentDeckName" type="text" placeholder="e.g. Agumon Bond, RustTyranomon…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none" />
+          </div>
+
+          <!-- Difficulty -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-medium text-gray-300">Matchup Difficulty</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button
+                v-for="opt in DIFFICULTY_OPTIONS"
+                :key="opt.key"
+                @click="muDifficulty = opt.key"
+                class="flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-colors"
+                :class="muDifficulty === opt.key
+                  ? DIFFICULTY_STYLE[opt.key]
+                  : 'border-gray-700 text-gray-500 hover:border-gray-500'"
+              >
+                <span v-if="opt.key === 'favored'" class="text-base">▲</span>
+                <span v-else-if="opt.key === 'even'" class="text-base">●</span>
+                <span v-else class="text-base">▼</span>
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Strategy Notes tabs -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-medium text-gray-300">Strategy Notes</label>
+            <!-- Tab switcher -->
+            <div class="flex border-b border-gray-800 -mx-0 gap-0">
+              <button
+                @click="muActiveNoteTab = 'first'"
+                class="px-4 py-2 text-xs font-semibold border-b-2 transition-colors"
+                :class="muActiveNoteTab === 'first' ? 'border-yellow-400 text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-300'"
+              >
+                Going First
+              </button>
+              <button
+                @click="muActiveNoteTab = 'second'"
+                class="px-4 py-2 text-xs font-semibold border-b-2 transition-colors"
+                :class="muActiveNoteTab === 'second' ? 'border-blue-400 text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-300'"
+              >
+                Going Second
+              </button>
+            </div>
+            <div class="relative">
+              <textarea
+                v-if="muActiveNoteTab === 'first'"
+                v-model="muNotesFirst"
+                rows="4"
+                maxlength="250"
+                placeholder="Strategy when going first…"
+                class="w-full bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none resize-none"
+              />
+              <textarea
+                v-else
+                v-model="muNotesSecond"
+                rows="4"
+                maxlength="250"
+                placeholder="Strategy when going second…"
+                class="w-full bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-blue-800/50 focus:border-blue-400 outline-none resize-none"
+              />
+              <span class="absolute bottom-2 right-3 text-[10px] text-gray-600">
+                {{ muActiveNoteTab === 'first' ? muNotesFirst.length : muNotesSecond.length }}/250
+              </span>
+            </div>
+          </div>
+
+          <p v-if="addMatchupError" class="text-xs text-red-400">{{ addMatchupError }}</p>
+
+          <div class="flex gap-2 justify-end pt-1">
+            <button @click="showAddMatchupModal = false" class="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-4 py-2 transition-colors">Cancel</button>
+            <button @click="handleAddMatchup" :disabled="addMatchupSaving" class="text-xs font-semibold bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 rounded-lg px-5 py-2 transition-colors">
+              {{ addMatchupSaving ? 'Saving…' : 'Save Matchup' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

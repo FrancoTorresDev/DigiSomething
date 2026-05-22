@@ -61,6 +61,20 @@ async function openSaveModal() {
     }
     loginLoading.value = false
   }
+  // Existing deck: skip the modal and update directly
+  if (deck.activeDeck.id) {
+    savingDeck.value = true
+    try {
+      await deck.saveDeck()
+      router.push({ name: 'deck-detail', params: { id: deck.activeDeck.id } })
+    } catch (e: unknown) {
+      const err = e as { code?: string; message?: string }
+      loginError.value = err.code ?? err.message ?? 'Update failed'
+    } finally {
+      savingDeck.value = false
+    }
+    return
+  }
   saveName.value = deck.activeDeck.name || 'My Awesome Deck'
   saveDescription.value = deck.activeDeck.description ?? ''
   saveVideoUrl.value = deck.activeDeck.videoUrl ?? ''
@@ -374,6 +388,7 @@ function onGlobalDrop(e: DragEvent) {
           </svg>
           Sign in &amp; Save
         </span>
+        <span v-else-if="deck.activeDeck.id">Update Deck</span>
         <span v-else>Save Deck</span>
       </button>
     </div>
@@ -398,8 +413,8 @@ function onGlobalDrop(e: DragEvent) {
       <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-white font-semibold text-base">Save Deck</h2>
-            <p class="text-xs text-gray-500 mt-0.5">Save your deck to your collection</p>
+            <h2 class="text-white font-semibold text-base">{{ deck.activeDeck.id ? 'Update Deck' : 'Save Deck' }}</h2>
+            <p class="text-xs text-gray-500 mt-0.5">{{ deck.activeDeck.id ? 'Save changes as a new version' : 'Save your deck to your collection' }}</p>
           </div>
           <button
             @click="showSaveModal = false"
@@ -496,7 +511,7 @@ function onGlobalDrop(e: DragEvent) {
             class="text-xs font-semibold bg-yellow-500 hover:bg-yellow-400 disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 rounded-lg px-4 py-2 transition-colors"
           >
             <span v-if="savingDeck">Saving…</span>
-            <span v-else>Save Deck</span>
+            <span v-else>{{ deck.activeDeck.id ? 'Update Deck' : 'Save Deck' }}</span>
           </button>
         </div>
       </div>
