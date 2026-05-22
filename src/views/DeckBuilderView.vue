@@ -37,7 +37,7 @@ const hasMoreVisible = computed(() => displayCount.value < tabCards.value.length
 watch(tabCards, () => { displayCount.value = INITIAL_DISPLAY })
 
 function loadMore(): void {
-  displayCount.value += LOAD_MORE_STEP
+  displayCount.value = Math.min(displayCount.value + LOAD_MORE_STEP, tabCards.value.length)
   // Fetch next API batch if we're running low on loaded cards
   if (displayCount.value >= tabCards.value.length - LOAD_MORE_STEP && cardStore.hasMore && !cardStore.loading) {
     cardStore.fetchCards(cardStore.currentPage + 1)
@@ -96,7 +96,7 @@ function onCardClick(card: DigimonCard): void {
       <div class="px-5 pt-3 pb-3 border-b border-ds-neon/20 shrink-0 bg-ds-navy">
         <FilterBar />
         <p class="text-xs text-ds-slate/50 mt-2">
-          {{ tabCards.length }} cards
+          Showing {{ visibleCards.length }} of {{ tabCards.length }} cards
           <span v-if="cardStore.loading" class="ml-2 text-ds-gold/60">Loading…</span>
         </p>
       </div>
@@ -117,6 +117,15 @@ function onCardClick(card: DigimonCard): void {
           grid-class="grid grid-cols-6 gap-3"
           @card-click="onCardClick"
         />
+
+        <div v-if="hasMoreVisible && !cardStore.loading" class="flex justify-center mt-4 mb-2">
+          <button
+            @click="loadMore"
+            class="bg-ds-midnight hover:bg-ds-navy text-ds-soft-white text-xs px-4 py-2 rounded-lg border border-ds-neon/30 transition-colors"
+          >
+            Load More Cards
+          </button>
+        </div>
 
         <!-- Sentinel: triggers load-more when scrolled into view -->
         <div ref="sentinel" class="h-1" />

@@ -63,10 +63,14 @@ export const useCardStore = defineStore('cards', () => {
   })
 
   async function fetchCards(page = 1): Promise<void> {
+    if (page > 1 && !hasMore.value) return
+
     loading.value = true
     error.value = null
     try {
       const cards = await searchCards({ page, sort: 'name', num: PAGE_SIZE })
+      const receivedAppearsUnpaged = cards.length > PAGE_SIZE * 2
+
       if (page === 1) {
         const seen = new Set<string>()
         allCards.value = cards.filter((c) => {
@@ -74,6 +78,8 @@ export const useCardStore = defineStore('cards', () => {
           seen.add(c.cardnumber)
           return true
         })
+        // digimoncard.io currently ignores paging params and returns all cards.
+        hasMore.value = !receivedAppearsUnpaged && cards.length >= PAGE_SIZE
       } else {
         const seen = new Set(allCards.value.map((c) => c.cardnumber))
         const unique = cards.filter((c) => {
@@ -82,8 +88,9 @@ export const useCardStore = defineStore('cards', () => {
           return true
         })
         allCards.value = [...allCards.value, ...unique]
+        hasMore.value = !receivedAppearsUnpaged && unique.length > 0 && cards.length >= PAGE_SIZE
       }
-      hasMore.value = cards.length >= PAGE_SIZE
+
       currentPage.value = page
     } catch {
       error.value = 'Failed to load cards. Please try again.'

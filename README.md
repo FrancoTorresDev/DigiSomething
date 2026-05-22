@@ -38,6 +38,27 @@ npm run firebase:use
 npm run deploy:prod
 ```
 
+## No-Blaze API Proxy (Cloudflare Worker)
+
+If you do not want Firebase Functions (and Blaze billing), use a Cloudflare Worker as the Digimon API proxy.
+
+### 1. Deploy Worker
+- Worker source: `cloudflare/worker.js`
+- Setup guide: `cloudflare/README.md`
+
+### 2. Configure production API base
+Create `.env.production` and set:
+```bash
+VITE_API_PROXY_BASE=https://your-worker-subdomain.workers.dev
+```
+
+Use `.env.production.example` as a template.
+
+### 3. Publish frontend only
+```bash
+npm run deploy:prod
+```
+
 ## Production Publish Checklist
 
 ### 1. One-time Firebase CLI setup
@@ -55,24 +76,25 @@ npm run firebase:use
 ```
 
 ### 3. Build and deploy options
-- Full deploy (Hosting + Functions):
+- Hosting-only deploy (recommended default):
 ```bash
 npm run deploy:prod
 ```
-- Hosting only:
+- Explicit hosting-only:
 ```bash
 npm run deploy:hosting
 ```
-- Generic deploy shortcut:
+- Full deploy (Hosting + Functions, requires Blaze):
 ```bash
-npm run deploy
+npm run deploy:full
 ```
 
 ### 4. Validate live site
 After deploy, verify:
 - Main app loads on Firebase Hosting URL.
 - Hard refresh on an internal route works (SPA rewrite to `index.html`).
-- API proxies work via `/digimon-api/**` and `/justtcg-api/**`.
+- If using Cloudflare Worker, cards API works via `VITE_API_PROXY_BASE`.
+- If using Firebase Functions, API proxies work via `/digimon-api/**` and `/justtcg-api/**`.
 
 ## Custom Domain (Firebase Hosting)
 

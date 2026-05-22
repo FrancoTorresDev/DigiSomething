@@ -9,9 +9,10 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.vue --fix",
     "firebase:use": "firebase use digisomething-b296c",
-    "deploy": "npm run build && firebase deploy",
+    "deploy": "npm run build && firebase deploy --only hosting",
     "deploy:hosting": "npm run build && firebase deploy --only hosting",
-    "deploy:prod": "npm run build && firebase deploy --only hosting,functions"
+    "deploy:prod": "npm run build && firebase deploy --only hosting",
+    "deploy:full": "npm run build && firebase deploy --only hosting,functions"
   },
   "dependencies": {
     "axios": "^1.7.0",

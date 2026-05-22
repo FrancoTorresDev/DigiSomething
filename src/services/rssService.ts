@@ -1,8 +1,11 @@
 import axios from 'axios'
 
-// Proxied through Vite dev server to avoid Reddit CORS block
-// Search for posts with News flair directly — more reliable than filtering top posts
-const REDDIT_API = '/reddit-api/r/DigimonCardGame2020/search.json'
+// In production, this points to the external worker proxy.
+// In local dev, it falls back to Vite's /reddit-api proxy.
+const API_PROXY_BASE = (import.meta.env.VITE_API_PROXY_BASE ?? '').replace(/\/$/, '')
+const REDDIT_API = API_PROXY_BASE
+  ? `${API_PROXY_BASE}/reddit-api/r/DigimonCardGame2020/search.json`
+  : '/reddit-api/r/DigimonCardGame2020/search.json'
 
 export interface NewsItem {
   title: string

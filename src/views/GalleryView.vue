@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useCardStore } from '@/stores/cardStore'
 import CardGrid from '@/components/cards/CardGrid.vue'
 import CardDetailModal from '@/components/cards/CardDetailModal.vue'
@@ -9,6 +9,16 @@ import type { DigimonCard } from '@/models/Card'
 const cardStore = useCardStore()
 const selectedCard = ref<DigimonCard | null>(null)
 const showModal = ref(false)
+const INITIAL_DISPLAY = 36
+const LOAD_MORE_STEP = 36
+const displayCount = ref(INITIAL_DISPLAY)
+
+const visibleCards = computed(() => cardStore.filteredCards.slice(0, displayCount.value))
+const hasLocalMore = computed(() => displayCount.value < cardStore.filteredCards.length)
+
+watch(() => cardStore.filteredCards, () => {
+  displayCount.value = INITIAL_DISPLAY
+})
 
 onMounted(() => {
   if (cardStore.allCards.length === 0) cardStore.fetchCards(1)
@@ -20,7 +30,10 @@ function onCardClick(card: DigimonCard): void {
 }
 
 function loadMore(): void {
-  cardStore.fetchCards(cardStore.currentPage + 1)
+  displayCount.value += LOAD_MORE_STEP
+  if (displayCount.value >= cardStore.filteredCards.length - LOAD_MORE_STEP && cardStore.hasMore && !cardStore.loading) {
+    cardStore.fetchCards(cardStore.currentPage + 1)
+  }
 }
 </script>
 
@@ -55,21 +68,21 @@ function loadMore(): void {
 
     <template v-else>
       <p class="text-sm text-ds-slate/60 mb-4">
-        Showing {{ cardStore.filteredCards.length }}
+        Showing {{ visibleCards.length }}
         card{{ cardStore.filteredCards.length !== 1 ? 's' : '' }}
-        of {{ cardStore.allCards.length }} loaded
+        of {{ cardStore.filteredCards.length }} matching filters
       </p>
 
-      <CardGrid :cards="cardStore.filteredCards" @card-click="onCardClick" />
+      <CardGrid :cards="visibleCards" @card-click="onCardClick" />
 
       <!-- Load more -->
-      <div v-if="cardStore.hasMore" class="flex justify-center mt-12">
+      <div v-if="hasLocalMore || cardStore.hasMore" class="flex justify-center mt-12">
         <button
           @click="loadMore"
           :disabled="cardStore.loading"
           class="bg-ds-midnight hover:bg-ds-navy text-ds-soft-white text-sm px-10 py-3 rounded-xl border border-ds-neon/30 transition-colors disabled:opacity-50"
         >
-          {{ cardStore.loading ? 'Loading…' : 'Load More' }}
+          {{ cardStore.loading ? 'Loading…' : 'Load More Cards' }}
         </button>
       </div>
     </template>

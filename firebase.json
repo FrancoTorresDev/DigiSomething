@@ -16,14 +16,6 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
-        "source": "/digimon-api/**",
-        "function": "digimonProxy"
-      },
-      {
-        "source": "/justtcg-api/**",
-        "function": "justTcgPricingProxy"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }

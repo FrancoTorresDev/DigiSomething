@@ -1,7 +1,10 @@
 import axios from 'axios'
 import type { DigimonCard } from '@/models/Card'
 
-const BASE_URL = '/digimon-api/search.php'
+const API_PROXY_BASE = (import.meta.env.VITE_API_PROXY_BASE ?? '').replace(/\/$/, '')
+const BASE_URL = API_PROXY_BASE
+  ? `${API_PROXY_BASE}/digimon-api/search.php`
+  : '/digimon-api/search.php'
 const IMAGE_BASE = 'https://images.digimoncard.io/images/cards'
 
 /** Raw shape returned by digimoncard.io/api-public (snake_case) */
