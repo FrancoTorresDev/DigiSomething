@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import type { Deck } from '@/models/Deck'
 import type { DigimonCard } from '@/models/Card'
+import BaseButton from '@/components/ui/BaseButton.vue'
 
 const props = defineProps<{ deck: Deck }>()
 const emit = defineEmits<{ close: [] }>()
@@ -275,13 +276,13 @@ function back() {
       @mousedown.self="emit('close')"
     >
       <div
-        class="relative bg-gray-900 border border-gray-800 rounded-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-300"
+        class="relative bg-ds-navy border border-ds-neon/20 rounded-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-300"
         :style="{ maxWidth: step === 'preview' ? '640px' : '420px' }"
       >
         <!-- Close -->
         <button
           @click="emit('close')"
-          class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors z-10"
+          class="absolute top-4 right-4 text-ds-slate hover:text-ds-soft-white transition-colors z-10"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -290,16 +291,16 @@ function back() {
 
         <!-- ─── SETTINGS ──────────────────────────────────────────── -->
         <div v-if="step === 'settings'" class="p-6">
-          <h2 class="text-lg font-bold text-white">Export Proxies</h2>
-          <p class="text-sm text-gray-400 mt-0.5 mb-6">Print-ready A4 proxy sheets for your deck</p>
+          <h2 class="text-lg font-bold text-ds-soft-white">Export Proxies</h2>
+          <p class="text-sm text-ds-slate/60 mt-0.5 mb-6">Print-ready A4 proxy sheets for your deck</p>
 
           <!-- Options -->
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Options</p>
-          <div class="border border-gray-800 rounded-xl overflow-hidden mb-6">
+          <p class="text-xs font-semibold text-ds-slate/50 uppercase tracking-wider mb-2">Options</p>
+          <div class="border border-ds-neon/20 rounded-xl overflow-hidden mb-6">
             <div class="flex items-center justify-between px-4 py-3">
               <div>
-                <p class="text-sm font-medium text-white">Include Digi-Eggs</p>
-                <p class="text-xs text-gray-500 mt-0.5">Add egg cards to the proxy sheet</p>
+                <p class="text-sm font-medium text-ds-soft-white">Include Digi-Eggs</p>
+                <p class="text-xs text-ds-slate/60 mt-0.5">Add egg cards to the proxy sheet</p>
               </div>
               <button
                 @click="includeEggs = !includeEggs"
@@ -315,55 +316,50 @@ function back() {
           </div>
 
           <!-- Summary -->
-          <div class="flex items-center justify-between mb-5 text-sm text-gray-400">
+          <div class="flex items-center justify-between mb-5 text-sm text-ds-slate/60">
             <span>{{ allCards.length }} cards · {{ pageCount }} {{ pageCount === 1 ? 'page' : 'pages' }} · 3×3</span>
             <span class="text-xs">A4 portrait</span>
           </div>
 
           <!-- Generate -->
-          <button
-            @click="generatePreview"
+          <BaseButton
+            variant="cta"
+            size="lg"
+            class="w-full"
             :disabled="allCards.length === 0"
-            class="w-full py-3 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-gray-900 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+            @click="generatePreview"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
+            <template #icon><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></template>
             Generate Preview
-          </button>
+          </BaseButton>
         </div>
 
         <!-- ─── PREVIEW ────────────────────────────────────────────── -->
         <div v-else class="p-6">
           <!-- Back -->
-          <button
-            @click="back"
-            class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-4 transition-colors"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
+          <BaseButton variant="ghost" size="sm" @click="back" class="mb-4">
+            <template #icon><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></template>
             Back to settings
-          </button>
+          </BaseButton>
 
-          <h2 class="text-lg font-bold text-white mb-1">Proxy Preview</h2>
-          <p class="text-sm text-gray-400 mb-4">
+          <h2 class="text-lg font-bold text-ds-soft-white mb-1">Proxy Preview</h2>
+          <p class="text-sm text-ds-slate/60 mb-4">
             {{ allCards.length }} cards · {{ pageUrls.length }} {{ pageUrls.length === 1 ? 'page' : 'pages' }} · A4 · 3×3
           </p>
 
           <!-- Generating spinner -->
           <div v-if="generating" class="flex flex-col items-center justify-center py-16 gap-4">
-            <svg class="w-8 h-8 text-yellow-500 animate-spin" fill="none" viewBox="0 0 24 24">
+            <svg class="w-8 h-8 text-ds-gold animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
             </svg>
-            <p class="text-sm text-gray-400">Rendering pages…</p>
+            <p class="text-sm text-ds-slate/60">Rendering pages…</p>
           </div>
 
           <!-- Page image -->
           <div v-else-if="pageUrls.length" class="space-y-4">
             <!-- Canvas preview -->
-            <div class="rounded-xl overflow-hidden border border-gray-700 shadow-xl bg-white">
+            <div class="rounded-xl overflow-hidden border border-ds-neon/20 shadow-xl bg-white">
               <img
                 :src="pageUrls[currentPage]"
                 class="w-full block"
@@ -376,19 +372,19 @@ function back() {
               <button
                 @click="currentPage--"
                 :disabled="currentPage === 0"
-                class="p-1.5 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
+                class="p-1.5 rounded-lg text-ds-slate hover:text-ds-soft-white disabled:opacity-30 transition-colors"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
               </button>
-              <span class="text-sm text-gray-400 min-w-[80px] text-center">
+              <span class="text-sm text-ds-slate min-w-[80px] text-center">
                 Page {{ currentPage + 1 }} / {{ pageUrls.length }}
               </span>
               <button
                 @click="currentPage++"
                 :disabled="currentPage === pageUrls.length - 1"
-                class="p-1.5 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
+                class="p-1.5 rounded-lg text-ds-slate hover:text-ds-soft-white disabled:opacity-30 transition-colors"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -398,16 +394,16 @@ function back() {
 
             <!-- Actions -->
             <div class="grid grid-cols-1 gap-2 pt-1">
-              <button
+              <BaseButton
+                variant="cta"
+                size="lg"
+                class="w-full"
                 @click="downloadPdf"
-                class="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
-                </svg>
+                <template #icon><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg></template>
                 Download PDF
-              </button>
-              <p class="text-xs text-center text-gray-500">
+              </BaseButton>
+              <p class="text-xs text-center text-ds-slate/50">
                 Opens a print dialog — choose "Save as PDF" in your browser
               </p>
             </div>

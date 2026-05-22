@@ -3,7 +3,7 @@ import Navbar from '@/components/layout/Navbar.vue'
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-950 text-white">
+  <div class="min-h-screen text-ds-soft-white">
     <Navbar />
     <main class="pt-16">
       <RouterView />

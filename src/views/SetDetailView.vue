@@ -64,7 +64,7 @@ function onCardClick(card: DigimonCard) {
     <div class="mb-6">
       <button
         @click="router.push({ name: 'sets' })"
-        class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors mb-4"
+        class="flex items-center gap-1.5 text-sm text-ds-slate hover:text-ds-soft-white transition-colors mb-4"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
@@ -74,34 +74,34 @@ function onCardClick(card: DigimonCard) {
 
       <template v-if="set">
         <div class="flex items-center gap-3 flex-wrap">
-          <h1 class="text-3xl font-bold text-white">{{ set.name }}</h1>
-          <span class="text-lg font-mono text-gray-500">{{ set.code }}</span>
+          <h1 class="text-3xl font-bold text-ds-soft-white">{{ set.name }}</h1>
+          <span class="text-lg font-mono text-ds-slate">{{ set.code }}</span>
           <span
             class="text-xs font-bold px-2 py-1 rounded leading-none"
             :class="TYPE_BADGE[set.type]"
           >{{ set.type }}</span>
         </div>
-        <p class="text-gray-500 text-sm mt-1">
+        <p class="text-ds-slate text-sm mt-1">
           Released {{ set.releaseDate.replace('-', '/') }}
-          <span v-if="!loading" class="ml-2 text-gray-600">· {{ filteredCards.length }} card{{ filteredCards.length !== 1 ? 's' : '' }}</span>
+          <span v-if="!loading" class="ml-2 text-ds-slate/50">· {{ filteredCards.length }} card{{ filteredCards.length !== 1 ? 's' : '' }}</span>
         </p>
       </template>
-      <p v-else class="text-gray-400">Set not found</p>
+        <p v-else class="text-ds-slate">Set not found</p>
     </div>
 
     <!-- Search bar -->
     <div v-if="set && !loading && cards.length" class="mb-6">
-      <div class="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 w-full sm:w-80">
-        <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <div class="flex items-center gap-2 bg-ds-navy border border-ds-neon/20 rounded-lg px-3 py-2 w-full sm:w-80 focus-within:border-ds-cyan transition-colors">
+        <svg class="w-4 h-4 text-ds-slate shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
         <input
           v-model="search"
           type="text"
           placeholder="Search cards in this set..."
-          class="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-600 outline-none"
+          class="flex-1 bg-transparent text-sm text-ds-soft-white placeholder-ds-slate/60 outline-none"
         />
-        <button v-if="search" @click="search = ''" class="text-gray-600 hover:text-gray-400">
+        <button v-if="search" @click="search = ''" class="text-ds-slate/50 hover:text-ds-slate">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/>
           </svg>
@@ -111,27 +111,27 @@ function onCardClick(card: DigimonCard) {
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-28">
-      <div class="w-12 h-12 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      <div class="w-12 h-12 border-2 border-ds-gold border-t-transparent rounded-full animate-spin" />
     </div>
 
     <!-- Error -->
     <div v-else-if="error" class="text-center py-28">
-      <p class="text-gray-400 mb-4">{{ error }}</p>
-      <button @click="router.push({ name: 'sets' })" class="text-sm text-yellow-400 hover:underline">
+      <p class="text-ds-slate mb-4">{{ error }}</p>
+      <button @click="router.push({ name: 'sets' })" class="text-sm text-ds-gold hover:underline">
         Back to sets
       </button>
     </div>
 
     <!-- No cards (set name mismatch with API) -->
     <div v-else-if="!loading && cards.length === 0 && set" class="text-center py-28">
-      <p class="text-gray-500 mb-2">No cards found for this set.</p>
-      <p class="text-xs text-gray-700">The set data may not be available in the API yet.</p>
+      <p class="text-ds-slate mb-2">No cards found for this set.</p>
+      <p class="text-xs text-ds-slate/40">The set data may not be available in the API yet.</p>
     </div>
 
     <!-- No search results -->
     <div v-else-if="filteredCards.length === 0 && search" class="text-center py-16">
-      <p class="text-gray-500">No cards match "{{ search }}"</p>
-      <button @click="search = ''" class="mt-2 text-sm text-yellow-400 hover:text-yellow-300">Clear search</button>
+      <p class="text-ds-slate">No cards match "{{ search }}"</p>
+      <button @click="search = ''" class="mt-2 text-sm text-ds-gold hover:text-ds-cyan">Clear search</button>
     </div>
 
     <!-- Card grid -->

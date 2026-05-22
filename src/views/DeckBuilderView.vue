@@ -78,36 +78,36 @@ function onCardClick(card: DigimonCard): void {
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
 
       <!-- Tab bar -->
-      <div class="px-5 pt-4 pb-0 shrink-0 flex items-center gap-2 border-b border-gray-800 bg-gray-950">
+      <div class="px-5 pt-4 pb-0 shrink-0 flex items-center gap-2 border-b border-ds-neon/20 bg-ds-midnight">
         <button
           v-for="tab in tabs"
           :key="tab.key"
           @click="activeTab = tab.key"
-          class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2"
+          class="px-4 py-2 text-sm font-display font-medium rounded-t-lg transition-colors -mb-px border-b-2"
           :class="activeTab === tab.key
-            ? 'text-yellow-400 border-yellow-400 bg-gray-900'
-            : 'text-gray-500 border-transparent hover:text-gray-300'"
+            ? 'text-ds-gold border-ds-gold bg-ds-navy'
+            : 'text-ds-slate border-transparent hover:text-ds-soft-white'"
         >
           {{ tab.label }}
         </button>
       </div>
 
       <!-- Filter bar + count -->
-      <div class="px-5 pt-3 pb-3 border-b border-gray-800 shrink-0 bg-gray-900">
+      <div class="px-5 pt-3 pb-3 border-b border-ds-neon/20 shrink-0 bg-ds-navy">
         <FilterBar />
-        <p class="text-xs text-gray-600 mt-2">
+        <p class="text-xs text-ds-slate/50 mt-2">
           {{ tabCards.length }} cards
-          <span v-if="cardStore.loading" class="ml-2 text-yellow-500/60">Loading…</span>
+          <span v-if="cardStore.loading" class="ml-2 text-ds-gold/60">Loading…</span>
         </p>
       </div>
 
       <!-- Scrollable card grid -->
-      <div ref="scrollContainer" class="flex-1 overflow-y-auto px-5 py-4 bg-gray-950">
+      <div ref="scrollContainer" class="flex-1 overflow-y-auto px-5 py-4 bg-ds-midnight">
         <div
           v-if="cardStore.loading && cardStore.allCards.length === 0"
           class="flex justify-center py-28"
         >
-          <div class="w-12 h-12 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+          <div class="w-12 h-12 border-2 border-ds-gold border-t-transparent rounded-full animate-spin" />
         </div>
 
         <CardGrid
@@ -129,7 +129,7 @@ function onCardClick(card: DigimonCard): void {
           <div
             v-for="n in 12"
             :key="n"
-            class="aspect-[2/3] rounded-lg bg-gray-800 overflow-hidden relative"
+            class="aspect-[2/3] rounded-lg bg-ds-navy overflow-hidden relative"
           >
             <div class="shimmer" />
           </div>
@@ -138,7 +138,7 @@ function onCardClick(card: DigimonCard): void {
     </div>
 
     <!-- Right: deck builder panel (40%) -->
-    <div class="w-2/5 shrink-0 border-l border-gray-800 overflow-hidden flex flex-col">
+    <div class="w-2/5 shrink-0 border-l border-ds-neon/20 overflow-hidden flex flex-col">
       <DeckList />
     </div>
   </div>

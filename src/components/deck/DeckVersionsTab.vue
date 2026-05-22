@@ -104,24 +104,24 @@ function formatDate(ts: unknown): string {
   <div class="space-y-4">
 
     <!-- Header bar -->
-    <div class="flex items-center gap-6 px-1 py-3 border-b border-gray-800 text-sm">
-      <div class="flex items-center gap-1.5 text-gray-400">
-        <span class="text-gray-600 uppercase text-xs tracking-widest font-semibold">Current</span>
-        <span class="text-yellow-400 font-bold">v{{ latestVersionNumber }}</span>
+    <div class="flex items-center gap-6 px-1 py-3 border-b border-ds-neon/20 text-sm">
+      <div class="flex items-center gap-1.5 text-ds-slate">
+        <span class="text-ds-slate/40 uppercase text-xs tracking-widest font-semibold">Current</span>
+        <span class="text-ds-gold font-bold">v{{ latestVersionNumber }}</span>
       </div>
-      <div class="flex items-center gap-1.5 text-gray-400">
-        <span class="text-gray-600 uppercase text-xs tracking-widest font-semibold">Versions</span>
-        <span class="text-white font-bold">{{ totalVersions }}</span>
+      <div class="flex items-center gap-1.5 text-ds-slate">
+        <span class="text-ds-slate/40 uppercase text-xs tracking-widest font-semibold">Versions</span>
+        <span class="text-ds-soft-white font-bold">{{ totalVersions }}</span>
       </div>
     </div>
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
-      <div class="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      <div class="w-8 h-8 border-2 border-ds-gold border-t-transparent rounded-full animate-spin" />
     </div>
 
     <!-- Empty -->
-    <div v-else-if="versions.length === 0" class="flex flex-col items-center gap-3 py-16 text-gray-600">
+    <div v-else-if="versions.length === 0" class="flex flex-col items-center gap-3 py-16 text-ds-slate/40">
       <svg class="w-10 h-10 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -132,7 +132,7 @@ function formatDate(ts: unknown): string {
     <!-- Timeline -->
     <div v-else class="relative">
       <!-- Vertical line -->
-      <div class="absolute left-[18px] top-3 bottom-3 w-px bg-gray-800" />
+      <div class="absolute left-[18px] top-3 bottom-3 w-px bg-ds-neon/20" />
 
       <div class="space-y-3">
         <div
@@ -144,51 +144,51 @@ function formatDate(ts: unknown): string {
           <div
             class="absolute left-[11px] top-[18px] w-3.5 h-3.5 rounded-full border-2 z-10"
             :class="version.versionNumber === latestVersionNumber
-              ? 'bg-yellow-400 border-yellow-400'
-              : 'bg-gray-950 border-gray-600'"
+              ? 'bg-ds-gold border-ds-gold'
+              : 'bg-ds-midnight border-ds-neon/40'"
           />
 
           <!-- Version card -->
-          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div class="bg-ds-navy border border-ds-neon/20 rounded-xl overflow-hidden">
 
             <!-- Version header (always visible, clickable) -->
             <button
-              class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-800/60 transition-colors text-left"
+              class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-ds-navy/60 transition-colors text-left"
               @click="toggle(version.versionNumber)"
             >
               <!-- Version badge -->
               <span
                 class="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold"
                 :class="version.versionNumber === latestVersionNumber
-                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-600/40'
-                  : 'bg-gray-800 text-gray-400 border border-gray-700'"
+                  ? 'bg-ds-gold/15 text-ds-gold border border-ds-gold/40'
+                  : 'bg-ds-midnight text-ds-slate border border-ds-neon/20'"
               >
                 v{{ version.versionNumber }}
               </span>
 
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-semibold text-white">
+                  <span class="text-sm font-semibold text-ds-soft-white">
                     {{ version.versionNumber === latestVersionNumber ? 'Current Version' : version.label }}
                   </span>
                   <span
                     v-if="version.versionNumber === latestVersionNumber"
-                    class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-600/40 uppercase tracking-wider"
+                    class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-ds-gold/15 text-ds-gold border border-ds-gold/40 uppercase tracking-wider"
                   >Latest</span>
                   <span
                     v-if="version.versionNumber === 1"
-                    class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400 border border-gray-700 uppercase tracking-wider"
+                    class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-ds-midnight text-ds-slate border border-ds-neon/20 uppercase tracking-wider"
                   >Initial</span>
                 </div>
-                <p v-if="versionDiffSummary(version)" class="text-xs text-gray-500 mt-0.5">
+                <p v-if="versionDiffSummary(version)" class="text-xs text-ds-slate/60 mt-0.5">
                   {{ versionDiffSummary(version) }}
                 </p>
               </div>
 
               <div class="flex items-center gap-3 shrink-0">
-                <span class="text-xs text-gray-500">{{ formatDate(version.createdAt) }}</span>
+                <span class="text-xs text-ds-slate/50">{{ formatDate(version.createdAt) }}</span>
                 <svg
-                  class="w-4 h-4 text-gray-600 transition-transform duration-200"
+                  class="w-4 h-4 text-ds-slate/40 transition-transform duration-200"
                   :class="expanded.has(version.versionNumber) ? 'rotate-180' : ''"
                   fill="none" stroke="currentColor" viewBox="0 0 24 24"
                 >
@@ -198,11 +198,11 @@ function formatDate(ts: unknown): string {
             </button>
 
             <!-- Expanded body -->
-            <div v-if="expanded.has(version.versionNumber)" class="border-t border-gray-800 p-4">
+            <div v-if="expanded.has(version.versionNumber)" class="border-t border-ds-neon/20 p-4">
 
               <!-- No previous version to compare (oldest recorded snapshot) -->
               <template v-if="!versionDiff(version)">
-                <div class="flex flex-col items-center gap-2 py-6 text-gray-600">
+                <div class="flex flex-col items-center gap-2 py-6 text-ds-slate/40">
                   <svg class="w-8 h-8 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                       d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -225,9 +225,9 @@ function formatDate(ts: unknown): string {
                       <span class="w-5 h-5 rounded-full bg-red-500/20 border border-red-600/50 flex items-center justify-center text-red-400 text-[10px] font-bold">
                         -{{ versionDiff(version)!.removed.reduce((s, c) => s + Math.abs(c.quantityChange), 0) }}
                       </span>
-                      <span class="text-xs font-semibold uppercase tracking-widest text-gray-400">Cards Removed</span>
+                      <span class="text-xs font-semibold uppercase tracking-widest text-ds-slate">Cards Removed</span>
                     </div>
-                    <p class="text-[10px] uppercase tracking-widest text-gray-600 mb-2">Main Deck</p>
+                    <p class="text-[10px] uppercase tracking-widest text-ds-slate/40 mb-2">Main Deck</p>
                     <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                       <div
                         v-for="item in versionDiff(version)!.removed"
@@ -254,9 +254,9 @@ function formatDate(ts: unknown): string {
                       <span class="w-5 h-5 rounded-full bg-green-500/20 border border-green-600/50 flex items-center justify-center text-green-400 text-[10px] font-bold">
                         +{{ versionDiff(version)!.added.reduce((s, c) => s + c.quantityChange, 0) }}
                       </span>
-                      <span class="text-xs font-semibold uppercase tracking-widest text-gray-400">Cards Added</span>
+                      <span class="text-xs font-semibold uppercase tracking-widest text-ds-slate">Cards Added</span>
                     </div>
-                    <p class="text-[10px] uppercase tracking-widest text-gray-600 mb-2">Main Deck</p>
+                    <p class="text-[10px] uppercase tracking-widest text-ds-slate/40 mb-2">Main Deck</p>
                     <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                       <div
                         v-for="item in versionDiff(version)!.added"
@@ -280,7 +280,7 @@ function formatDate(ts: unknown): string {
                   <!-- No changes between versions -->
                   <div
                     v-if="versionDiff(version)!.added.length === 0 && versionDiff(version)!.removed.length === 0"
-                    class="flex flex-col items-center gap-2 py-6 text-gray-600 col-span-2"
+                    class="flex flex-col items-center gap-2 py-6 text-ds-slate/40 col-span-2"
                   >
                     <p class="text-sm">No card changes in this version.</p>
                   </div>

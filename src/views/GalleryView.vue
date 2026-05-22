@@ -28,8 +28,8 @@ function loadMore(): void {
   <div class="max-w-screen-2xl mx-auto px-4 py-10">
     <!-- Page header -->
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-white mb-1">Card Library</h1>
-      <p class="text-gray-400">Browse and discover all Digimon cards</p>
+      <h1 class="text-3xl font-bold text-ds-soft-white mb-1">Card Library</h1>
+      <p class="text-ds-slate">Browse and discover all Digimon cards</p>
     </div>
 
     <!-- Filters -->
@@ -39,22 +39,22 @@ function loadMore(): void {
 
     <!-- Initial loading -->
     <div v-if="cardStore.loading && cardStore.allCards.length === 0" class="flex justify-center py-28">
-      <div class="w-12 h-12 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      <div class="w-12 h-12 border-2 border-ds-gold border-t-transparent rounded-full animate-spin" />
     </div>
 
     <!-- Error state -->
     <div v-else-if="cardStore.error" class="text-center py-28">
-      <p class="text-gray-400 mb-4">{{ cardStore.error }}</p>
+      <p class="text-ds-slate mb-4">{{ cardStore.error }}</p>
       <button
         @click="cardStore.fetchCards(1)"
-        class="text-sm text-blue-400 hover:underline"
+        class="text-sm text-ds-cyan hover:underline"
       >
         Retry
       </button>
     </div>
 
     <template v-else>
-      <p class="text-sm text-gray-500 mb-4">
+      <p class="text-sm text-ds-slate/60 mb-4">
         Showing {{ cardStore.filteredCards.length }}
         card{{ cardStore.filteredCards.length !== 1 ? 's' : '' }}
         of {{ cardStore.allCards.length }} loaded
@@ -67,7 +67,7 @@ function loadMore(): void {
         <button
           @click="loadMore"
           :disabled="cardStore.loading"
-          class="bg-gray-800 hover:bg-gray-700 text-white text-sm px-10 py-3 rounded-xl border border-gray-700 transition-colors disabled:opacity-50"
+          class="bg-ds-midnight hover:bg-ds-navy text-ds-soft-white text-sm px-10 py-3 rounded-xl border border-ds-neon/30 transition-colors disabled:opacity-50"
         >
           {{ cardStore.loading ? 'Loading…' : 'Load More' }}
         </button>

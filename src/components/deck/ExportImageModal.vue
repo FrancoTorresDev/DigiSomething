@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import type { Deck } from '@/models/Deck'
 import type { DigimonCard } from '@/models/Card'
+import BaseButton from '@/components/ui/BaseButton.vue'
 
 const props = defineProps<{ deck: Deck }>()
 const emit = defineEmits<{ close: [] }>()
@@ -255,13 +256,13 @@ async function copyToClipboard() {
       @mousedown.self="emit('close')"
     >
       <div
-        class="relative bg-gray-900 border border-gray-800 rounded-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-300"
+        class="relative bg-ds-navy border border-ds-neon/20 rounded-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto transition-all duration-300"
         :style="{ maxWidth: step === 'preview' ? '860px' : '420px' }"
       >
         <!-- Close -->
         <button
           @click="emit('close')"
-          class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors z-10"
+          class="absolute top-4 right-4 text-ds-slate hover:text-ds-soft-white transition-colors z-10"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -270,32 +271,32 @@ async function copyToClipboard() {
 
         <!-- ─── SETTINGS ──────────────────────────────────────────────── -->
         <div v-if="step === 'settings'" class="p-6">
-          <h2 class="text-lg font-bold text-white">Export Image</h2>
-          <p class="text-sm text-gray-400 mt-0.5 mb-6">Generate a shareable image of your deck</p>
+          <h2 class="text-lg font-bold text-ds-soft-white">Export Image</h2>
+          <p class="text-sm text-ds-slate/60 mt-0.5 mb-6">Generate a shareable image of your deck</p>
 
           <!-- Quality -->
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Quality</p>
-          <div class="border border-yellow-600/60 bg-yellow-950/20 rounded-xl px-4 py-3 mb-5 text-center">
-            <p class="font-semibold text-white text-sm">Standard</p>
-            <p class="text-xs text-gray-400">Full HD WebP</p>
+          <p class="text-xs font-semibold text-ds-slate/50 uppercase tracking-wider mb-2">Quality</p>
+          <div class="border border-ds-gold/40 bg-ds-gold/10 rounded-xl px-4 py-3 mb-5 text-center">
+            <p class="font-semibold text-ds-soft-white text-sm">Standard</p>
+            <p class="text-xs text-ds-slate/60">Full HD WebP</p>
           </div>
 
           <!-- Background -->
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Background</p>
+          <p class="text-xs font-semibold text-ds-slate/50 uppercase tracking-wider mb-2">Background</p>
           <div class="grid grid-cols-2 gap-2 mb-3">
             <button
               @click="background = 'default'"
               class="py-2.5 rounded-xl text-sm font-semibold border transition-colors"
               :class="background === 'default'
-                ? 'bg-gray-700 text-white border-gray-500'
-                : 'bg-gray-800 text-gray-400 hover:text-white border-transparent'"
+                ? 'bg-ds-navy text-ds-soft-white border-ds-neon/40'
+                : 'bg-ds-midnight text-ds-slate hover:text-ds-soft-white border-transparent'"
             >Default</button>
             <button
               @click="background = 'color'"
               class="py-2.5 rounded-xl text-sm font-semibold border transition-colors flex items-center justify-center gap-2"
               :class="background === 'color'
-                ? 'bg-gray-700 text-white border-gray-500'
-                : 'bg-gray-800 text-gray-400 hover:text-white border-transparent'"
+                ? 'bg-ds-navy text-ds-soft-white border-ds-neon/40'
+                : 'bg-ds-midnight text-ds-slate hover:text-ds-soft-white border-transparent'"
             >
               <span
                 v-if="background === 'color'"
@@ -309,23 +310,23 @@ async function copyToClipboard() {
             <input
               type="color"
               v-model="bgColor"
-              class="w-9 h-9 rounded-lg border border-gray-700 bg-gray-800 cursor-pointer p-0.5"
+              class="w-9 h-9 rounded-lg border border-ds-neon/30 bg-ds-midnight cursor-pointer p-0.5"
             />
-            <span class="text-sm text-gray-400 font-mono">{{ bgColor }}</span>
+            <span class="text-sm text-ds-slate font-mono">{{ bgColor }}</span>
           </div>
           <div v-else class="mb-5"></div>
 
           <!-- Sort Order -->
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Sort Order</p>
+          <p class="text-xs font-semibold text-ds-slate/50 uppercase tracking-wider mb-2">Sort Order</p>
           <div class="space-y-1.5 mb-2">
             <div
               v-for="(lvl, i) in sortLevels"
               :key="i"
-              class="flex items-center gap-2 bg-gray-800/70 rounded-lg px-3 py-2"
+              class="flex items-center gap-2 bg-ds-midnight/70 rounded-lg px-3 py-2"
             >
               <!-- Up/down grip -->
-              <div class="flex flex-col gap-0 text-gray-600 shrink-0">
-                <button @click="moveUp(i)" :disabled="i === 0" class="disabled:opacity-30 hover:text-gray-400 transition-colors">
+              <div class="flex flex-col gap-0 text-ds-slate/40 shrink-0">
+                <button @click="moveUp(i)" :disabled="i === 0" class="disabled:opacity-30 hover:text-ds-slate transition-colors">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
                   </svg>
@@ -335,14 +336,14 @@ async function copyToClipboard() {
                 </svg>
               </div>
 
-              <span class="text-gray-600 text-xs w-4 shrink-0">{{ i + 1 }}</span>
-              <span class="flex-1 text-sm text-white font-medium">{{ lvl.field }}</span>
+              <span class="text-ds-slate/40 text-xs w-4 shrink-0">{{ i + 1 }}</span>
+              <span class="flex-1 text-sm text-ds-soft-white font-medium">{{ lvl.field }}</span>
 
               <!-- Direction toggle -->
               <button
                 @click="toggleDir(i)"
                 :title="lvl.dir === 'asc' ? 'Ascending – click to reverse' : 'Descending – click to reverse'"
-                class="text-gray-400 hover:text-white transition-colors shrink-0"
+                class="text-ds-slate hover:text-ds-soft-white transition-colors shrink-0"
               >
                 <svg v-if="lvl.dir === 'asc'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
@@ -353,7 +354,7 @@ async function copyToClipboard() {
               </button>
 
               <!-- Remove -->
-              <button @click="removeSortLevel(i)" class="text-gray-600 hover:text-red-400 transition-colors shrink-0">
+              <button @click="removeSortLevel(i)" class="text-ds-slate/40 hover:text-red-400 transition-colors shrink-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -366,7 +367,7 @@ async function copyToClipboard() {
             <button
               v-if="availableToAdd.length > 0"
               @click="showAddSort = !showAddSort"
-              class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors py-1"
+              class="flex items-center gap-1.5 text-sm text-ds-slate hover:text-ds-soft-white transition-colors py-1"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -375,59 +376,54 @@ async function copyToClipboard() {
             </button>
             <div
               v-if="showAddSort"
-              class="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-10 py-1 min-w-36"
+              class="absolute top-full left-0 mt-1 bg-ds-navy border border-ds-neon/30 rounded-xl shadow-xl z-10 py-1 min-w-36"
             >
               <button
                 v-for="field in availableToAdd"
                 :key="field"
                 @click="addSortLevel(field)"
-                class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                class="w-full text-left px-4 py-2 text-sm text-ds-soft-white/80 hover:bg-ds-midnight hover:text-ds-soft-white transition-colors"
               >{{ field }}</button>
             </div>
           </div>
 
           <!-- Display Options -->
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Display Options</p>
-          <div class="border border-gray-800 rounded-xl overflow-hidden mb-6">
+          <p class="text-xs font-semibold text-ds-slate/50 uppercase tracking-wider mb-2">Display Options</p>
+          <div class="border border-ds-neon/20 rounded-xl overflow-hidden mb-6">
             <div class="flex items-center justify-between px-4 py-3">
               <div>
-                <p class="text-sm font-medium text-white">Show QR Code</p>
-                <p class="text-xs text-gray-500 mt-0.5">Included automatically in the image</p>
+                <p class="text-sm font-medium text-ds-soft-white">Show QR Code</p>
+                <p class="text-xs text-ds-slate/60 mt-0.5">Included automatically in the image</p>
               </div>
-              <span class="text-xs text-yellow-500 font-medium px-2 py-1 bg-yellow-950/40 rounded-lg">Always On</span>
+              <span class="text-xs text-ds-gold font-medium px-2 py-1 bg-ds-gold/10 rounded-lg">Always On</span>
             </div>
           </div>
 
           <!-- Generate Preview -->
-          <button
+          <BaseButton
+            variant="cta"
+            size="lg"
+            class="w-full"
             @click="generatePreview"
-            class="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
+            <template #icon><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></template>
             Generate Preview
-          </button>
+          </BaseButton>
         </div>
 
         <!-- ─── PREVIEW ──────────────────────────────────────────────── -->
         <div v-else class="p-6">
-          <button
-            @click="step = 'settings'"
-            class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-4 transition-colors"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
+          <BaseButton variant="ghost" size="sm" @click="step = 'settings'" class="mb-4">
+            <template #icon><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></template>
             Back to settings
-          </button>
+          </BaseButton>
 
-          <h2 class="text-lg font-bold text-white mb-0.5">Export Image</h2>
-          <p class="text-sm text-gray-400 mb-4">Preview your deck image before downloading</p>
+          <h2 class="text-lg font-bold text-ds-soft-white mb-0.5">Export Image</h2>
+          <p class="text-sm text-ds-slate/60 mb-4">Preview your deck image before downloading</p>
 
           <!-- Preview canvas -->
-          <div class="rounded-xl overflow-hidden bg-gray-950 border border-gray-800 mb-5 min-h-48 flex items-center justify-center">
-            <div v-if="generating" class="flex flex-col items-center gap-3 py-12 text-gray-500">
+          <div class="rounded-xl overflow-hidden bg-ds-midnight border border-ds-neon/20 mb-5 min-h-48 flex items-center justify-center">
+            <div v-if="generating" class="flex flex-col items-center gap-3 py-12 text-ds-slate/50">
               <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -444,26 +440,24 @@ async function copyToClipboard() {
 
           <!-- Actions -->
           <div class="grid grid-cols-2 gap-3">
-            <button
+            <BaseButton
+              variant="cta"
+              size="lg"
+              :disabled="!previewUrl"
               @click="downloadImage"
-              :disabled="!previewUrl"
-              class="py-3 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-40 text-gray-900 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-              </svg>
+              <template #icon><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></template>
               Download Image
-            </button>
-            <button
-              @click="copyToClipboard"
+            </BaseButton>
+            <BaseButton
+              variant="secondary"
+              size="lg"
               :disabled="!previewUrl"
-              class="py-3 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2 text-sm border border-gray-700"
+              @click="copyToClipboard"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-              </svg>
+              <template #icon><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></template>
               Copy to Clipboard
-            </button>
+            </BaseButton>
           </div>
         </div>
       </div>

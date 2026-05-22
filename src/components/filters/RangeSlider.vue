@@ -41,8 +41,8 @@ function setMax(e: Event) {
 <template>
   <div class="flex flex-col gap-2">
     <div class="flex justify-between items-center">
-      <span class="text-xs text-gray-400 uppercase tracking-wider font-medium">{{ label }}</span>
-      <span class="text-xs font-mono text-yellow-400 tabular-nums">
+      <span class="text-xs text-ds-slate uppercase tracking-wider font-medium">{{ label }}</span>
+      <span class="text-xs font-mono text-ds-gold tabular-nums">
         {{ fmt(modelValue[0]) }} – {{ fmt(modelValue[1]) }}
       </span>
     </div>
@@ -50,9 +50,9 @@ function setMax(e: Event) {
     <!-- Track -->
     <div class="relative h-6 flex items-center">
       <!-- Grey background track -->
-      <div class="absolute inset-x-0 h-1.5 rounded-full bg-gray-700 pointer-events-none"></div>
-      <!-- Yellow fill between thumbs -->
-      <div class="absolute h-1.5 rounded-full bg-yellow-400 pointer-events-none" :style="fillStyle"></div>
+      <div class="absolute inset-x-0 h-1.5 rounded-full bg-ds-navy pointer-events-none"></div>
+      <!-- Gold fill between thumbs -->
+      <div class="absolute h-1.5 rounded-full bg-ds-gold pointer-events-none" :style="fillStyle"></div>
 
       <!-- Min thumb -->
       <input
@@ -95,8 +95,8 @@ function setMax(e: Event) {
   height: 18px;
   width: 18px;
   border-radius: 50%;
-  background: #facc15;
-  border: 2px solid #111827;
+  background: #FFC400;
+  border: 2px solid #030A24;
   pointer-events: all;
   cursor: pointer;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
@@ -111,8 +111,8 @@ function setMax(e: Event) {
   height: 18px;
   width: 18px;
   border-radius: 50%;
-  background: #facc15;
-  border: 2px solid #111827;
+  background: #FFC400;
+  border: 2px solid #030A24;
   pointer-events: all;
   cursor: pointer;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);

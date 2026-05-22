@@ -43,12 +43,12 @@ const totalCards = computed(() =>
   props.deck.cards.reduce((s, c) => s + c.quantity, 0)
 )
 
-const statusLabel = computed(() => (props.deck.isPublic ? 'Public' : 'Draft'))
+const statusLabel = computed(() => (props.deck.isPublic ? 'Public' : 'Private'))
 
 const statusClass = computed(() =>
   props.deck.isPublic
     ? 'text-green-400 border-green-700'
-    : 'text-yellow-500 border-yellow-700'
+    : 'text-ds-gold/80 border-ds-gold/40'
 )
 
 // Show explicitly chosen cover, or fall back to first main-deck card image
@@ -60,10 +60,10 @@ const coverImage = computed(() => {
 </script>
 
 <template>
-  <div class="flex bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-all duration-150 group cursor-pointer h-[110px]">
+  <div class="flex bg-ds-navy border border-ds-neon/20 rounded-xl overflow-hidden hover:border-ds-neon/50 transition-all duration-150 group cursor-pointer h-[110px]">
 
     <!-- Left: cover image -->
-    <div class="relative w-[80px] shrink-0 bg-gray-800 overflow-hidden">
+    <div class="relative w-[80px] shrink-0 bg-ds-midnight overflow-hidden">
       <img
         v-if="coverImage"
         :src="coverImage"
@@ -72,7 +72,7 @@ const coverImage = computed(() => {
       />
       <div
         v-else
-        class="w-full h-full flex flex-col items-center justify-center gap-1 text-gray-700"
+        class="w-full h-full flex flex-col items-center justify-center gap-1 text-ds-slate/30"
       >
         <!-- Placeholder icon -->
         <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -83,7 +83,7 @@ const coverImage = computed(() => {
         <span class="text-[9px] text-center leading-tight px-1">No cover</span>
       </div>
       <!-- Fade to right -->
-      <div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-gray-900/70 pointer-events-none" />
+      <div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-ds-navy/70 pointer-events-none" />
     </div>
 
     <!-- Right: info -->
@@ -91,10 +91,10 @@ const coverImage = computed(() => {
 
       <!-- Name + author -->
       <div>
-        <h3 class="text-white font-semibold text-sm leading-tight truncate group-hover:text-yellow-400 transition-colors">
+        <h3 class="text-ds-soft-white font-semibold text-sm leading-tight truncate group-hover:text-ds-gold transition-colors">
           {{ deck.name }}
         </h3>
-        <p v-if="deck.ownerName" class="text-[11px] text-gray-500 mt-0.5 truncate">
+        <p v-if="deck.ownerName" class="text-[11px] text-ds-slate/50 mt-0.5 truncate">
           by {{ deck.ownerName }}
         </p>
       </div>
@@ -108,11 +108,11 @@ const coverImage = computed(() => {
           class="w-2.5 h-2.5 rounded-full border border-black/30 shrink-0"
           :class="COLOR_BG[color] ?? 'bg-gray-400'"
         />
-        <span v-if="deckColors.length && deckSets.length" class="text-gray-700 text-[10px]">·</span>
+        <span v-if="deckColors.length && deckSets.length" class="text-ds-slate/30 text-[10px]">·</span>
         <span
           v-for="set in deckSets"
           :key="set"
-          class="text-[9px] font-bold px-1 py-px rounded bg-gray-800 border border-gray-700 text-gray-400 leading-none shrink-0"
+          class="text-[9px] font-bold px-1 py-px rounded bg-ds-midnight border border-ds-neon/20 text-ds-slate leading-none shrink-0"
         >{{ set }}</span>
       </div>
 
@@ -122,8 +122,8 @@ const coverImage = computed(() => {
           class="text-[9px] font-semibold px-1.5 py-px rounded border leading-none shrink-0"
           :class="statusClass"
         >{{ statusLabel }}</span>
-        <span class="text-[10px] text-gray-500 tabular-nums">{{ totalCards }}/55</span>
-        <span v-if="deck.votes > 0" class="text-[10px] text-gray-500 flex items-center gap-0.5">
+        <span class="text-[10px] text-ds-slate/50 tabular-nums">{{ totalCards }}/55</span>
+        <span v-if="deck.votes > 0" class="text-[10px] text-ds-slate/50 flex items-center gap-0.5">
           ♥ {{ deck.votes }}
         </span>
       </div>

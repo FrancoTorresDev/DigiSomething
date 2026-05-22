@@ -25,20 +25,20 @@ async function handleLogin() {
         :src="auth.photoURL"
         :alt="auth.displayName"
         referrerpolicy="no-referrer"
-        class="w-8 h-8 rounded-full border border-gray-600 shrink-0"
+        class="w-8 h-8 rounded-full border border-ds-neon/40 shrink-0"
       />
       <div
         v-else
-        class="w-8 h-8 rounded-full border border-gray-600 bg-yellow-500 flex items-center justify-center text-gray-950 text-xs font-bold shrink-0"
+        class="w-8 h-8 rounded-full border border-ds-neon/40 bg-ds-gold flex items-center justify-center text-ds-midnight text-xs font-bold shrink-0"
       >
         {{ auth.displayName.charAt(0).toUpperCase() }}
       </div>
-      <span class="hidden sm:block text-sm text-gray-300 max-w-28 truncate">
+      <span class="hidden sm:block text-sm text-ds-slate max-w-28 truncate">
         {{ auth.displayName }}
       </span>
       <button
         @click="auth.logout()"
-        class="text-sm text-gray-400 hover:text-white px-3 py-1.5 border border-gray-700 rounded-lg hover:border-gray-500 transition-colors"
+        class="text-sm text-ds-slate hover:text-ds-soft-white px-3 py-1.5 border border-ds-neon/30 rounded-lg hover:border-ds-neon transition-colors"
       >
         Sign Out
       </button>
@@ -47,7 +47,7 @@ async function handleLogin() {
     <div v-else class="flex flex-col items-end gap-1">
       <button
         @click="handleLogin"
-        class="flex items-center gap-2 text-sm bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+        class="flex items-center gap-2 text-sm bg-ds-royal hover:bg-ds-neon text-ds-soft-white px-4 py-2 rounded-lg transition-colors font-display font-semibold hover:glow-cyan"
       >
         <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
           <path

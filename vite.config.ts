@@ -27,6 +27,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/limitless-api/, '/api')
       },
+      '/justtcg-api': {
+        target: 'http://127.0.0.1:5002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/justtcg-api/, '/digisomething-b296c/us-central1/justTcgPricingProxy')
+      },
       '/card-images': {
         target: 'https://images.digimoncard.io',
         changeOrigin: true,

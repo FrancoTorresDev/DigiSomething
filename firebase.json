@@ -5,6 +5,12 @@
   "functions": {
     "source": "functions"
   },
+  "emulators": {
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 5002
+    }
+  },
   "hosting": {
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
@@ -12,6 +18,10 @@
       {
         "source": "/digimon-api/**",
         "function": "digimonProxy"
+      },
+      {
+        "source": "/justtcg-api/**",
+        "function": "justTcgPricingProxy"
       },
       {
         "source": "**",

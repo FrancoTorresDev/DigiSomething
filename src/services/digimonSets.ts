@@ -109,8 +109,8 @@ export const DIGIMON_SETS: DigimonSet[] = [
 export const SORTED_SETS = [...DIGIMON_SETS].sort((a, b) => b.releaseDate.localeCompare(a.releaseDate))
 
 export const TYPE_BADGE: Record<DigimonSet['type'], string> = {
-  Booster: 'bg-blue-950 text-blue-300 border border-blue-800',
-  Starter: 'bg-green-950 text-green-300 border border-green-800',
-  Extra:   'bg-purple-950 text-purple-300 border border-purple-800',
-  Other:   'bg-orange-950 text-orange-300 border border-orange-800',
+  Booster: 'bg-ds-royal/15 text-ds-royal border border-ds-royal/40',
+  Starter: 'bg-ds-cyan/15 text-ds-cyan border border-ds-cyan/40',
+  Extra:   'bg-ds-gold/15 text-ds-gold border border-ds-gold/40',
+  Other:   'bg-ds-slate/15 text-ds-slate border border-ds-slate/40',
 }

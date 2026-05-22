@@ -41,6 +41,14 @@ export interface DeckMatchup {
   createdAt?: unknown
 }
 
+export type DeckArchetypeTag =
+  | 'MIDRANGE_YELLOW'
+  | 'CONTROL_BLUE'
+  | 'AGGRO_RED'
+  | 'MIDRANGE'
+  | 'CONTROL'
+  | 'AGGRO'
+
 export interface Deck {
   id: string
   ownerId: string
@@ -57,4 +65,5 @@ export interface Deck {
   qrCodeUrl?: string
   currentVersion?: number
   guide?: string
+  archetypeTag?: DeckArchetypeTag
 }

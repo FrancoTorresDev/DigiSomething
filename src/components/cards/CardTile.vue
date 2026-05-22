@@ -17,20 +17,20 @@ const COLOR_BORDER: Record<string, string> = {
 }
 
 function getBorderClass(color: string): string {
-  return COLOR_BORDER[color] ?? 'border-gray-700'
+  return COLOR_BORDER[color] ?? 'border-ds-neon/30'
 }
 </script>
 
 <template>
   <div
-    class="relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-black/60 bg-gray-900"
+    class="relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-black/60 bg-ds-navy"
     :class="getBorderClass(props.card.color)"
     draggable="true"
     @dragstart="(e) => { e.dataTransfer?.setData('text/plain', JSON.stringify(card)); (e.currentTarget as HTMLElement).style.opacity = '0.5' }"
     @dragend="(e) => ((e.currentTarget as HTMLElement).style.opacity = '')"
   >
     <!-- Card image -->
-    <div class="aspect-[2/3] relative overflow-hidden bg-gray-800">
+    <div class="aspect-[2/3] relative overflow-hidden bg-ds-midnight">
       <img
         v-if="card.imgurl"
         :src="card.imgurl"
@@ -40,7 +40,7 @@ function getBorderClass(color: string): string {
       />
       <div
         v-else
-        class="w-full h-full flex items-center justify-center text-gray-600 text-xs text-center p-2"
+        class="w-full h-full flex items-center justify-center text-ds-slate/40 text-xs text-center p-2"
       >
         {{ card.name }}
       </div>
@@ -49,8 +49,8 @@ function getBorderClass(color: string): string {
     <!-- Card info -->
     <div class="px-2 py-1">
       <div class="flex justify-between items-center">
-        <span class="text-[10px] text-gray-400">{{ card.type }}</span>
-        <span class="text-[10px] text-gray-500 font-mono">{{ card.rarity }}-{{ card.cardnumber }}</span>
+        <span class="text-[10px] text-ds-slate">{{ card.type }}</span>
+        <span class="text-[10px] text-ds-slate/50 font-mono">{{ card.rarity }}-{{ card.cardnumber }}</span>
       </div>
     </div>
 
@@ -60,7 +60,7 @@ function getBorderClass(color: string): string {
       class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center"
     >
       <span
-        class="opacity-0 group-hover:opacity-100 transition-opacity bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg"
+        class="opacity-0 group-hover:opacity-100 transition-opacity bg-ds-royal text-ds-soft-white text-xs px-3 py-1 rounded-full font-medium shadow-lg glow-cyan"
       >
         + Add
       </span>

@@ -36,9 +36,9 @@ const router = createRouter({
       component: () => import('@/views/DeckBuilderView.vue')
     },
     {
-      path: '/meta',
-      name: 'meta',
-      component: () => import('@/views/MetaView.vue')
+      path: '/community-decks',
+      name: 'community-decks',
+      component: () => import('@/views/CommunityDecksView.vue')
     },
     {
       path: '/tournament',

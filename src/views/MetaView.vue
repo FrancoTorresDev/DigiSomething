@@ -56,29 +56,29 @@ const COLOR_BADGE: Record<string, string> = {
 <template>
   <div class="max-w-screen-xl mx-auto px-4 py-10">
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white mb-1">Meta Decks</h1>
-      <p class="text-gray-400">Top community-voted public decks</p>
+      <h1 class="text-3xl font-bold text-ds-soft-white mb-1">Meta Decks</h1>
+      <p class="text-ds-slate">Top community-voted public decks</p>
     </div>
 
     <!-- Loading -->
     <div v-if="meta.loading" class="flex justify-center py-28">
-      <div class="w-12 h-12 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      <div class="w-12 h-12 border-2 border-ds-gold border-t-transparent rounded-full animate-spin" />
     </div>
 
     <!-- Error -->
     <div v-else-if="meta.error" class="text-center py-28 text-gray-500">
       <p>{{ meta.error }}</p>
-      <button @click="meta.fetchMeta()" class="mt-3 text-sm text-blue-400 hover:underline">
+      <button @click="meta.fetchMeta()" class="mt-3 text-sm text-ds-cyan hover:underline">
         Retry
       </button>
     </div>
 
     <!-- Empty -->
     <div v-else-if="meta.topDecks.length === 0" class="text-center py-28">
-      <p class="text-gray-500 mb-2">No public decks yet.</p>
-      <p class="text-sm text-gray-600">
+      <p class="text-ds-slate mb-2">No public decks yet.</p>
+      <p class="text-sm text-ds-slate/60">
         Build a deck in the
-        <RouterLink to="/deck-builder" class="text-blue-400 hover:underline">Deck Builder</RouterLink>
+        <RouterLink to="/deck-builder" class="text-ds-cyan hover:underline">Deck Builder</RouterLink>
         and make it public!
       </p>
     </div>
@@ -88,22 +88,22 @@ const COLOR_BADGE: Record<string, string> = {
       <div
         v-for="(deck, i) in meta.topDecks"
         :key="deck.id"
-        class="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-700 transition-colors"
+        class="bg-ds-navy border border-ds-neon/20 rounded-xl p-5 hover:border-ds-neon/50 transition-colors"
       >
         <div class="flex items-start justify-between mb-3">
-          <span class="text-2xl font-black text-gray-700 leading-none">#{{ i + 1 }}</span>
+          <span class="text-2xl font-black text-ds-navy/60 leading-none">#{{ i + 1 }}</span>
           <button
             @click="vote(deck)"
             :disabled="!auth.isLoggedIn || voting.has(deck.id) || votedDeckIds.has(deck.id)"
-            class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-yellow-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            class="flex items-center gap-1.5 text-sm text-ds-slate hover:text-ds-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             :title="!auth.isLoggedIn ? 'Sign in to vote' : votedDeckIds.has(deck.id) ? 'Already voted' : 'Upvote'"
           >
             ▲ {{ deck.votes || 0 }}
           </button>
         </div>
 
-        <h3 class="text-white font-semibold text-lg truncate mb-0.5">{{ deck.name }}</h3>
-        <p v-if="deck.ownerName" class="text-sm text-gray-500 mb-3">by {{ deck.ownerName }}</p>
+        <h3 class="text-ds-soft-white font-semibold text-lg truncate mb-0.5">{{ deck.name }}</h3>
+        <p v-if="deck.ownerName" class="text-sm text-ds-slate mb-3">by {{ deck.ownerName }}</p>
 
         <div class="flex flex-wrap gap-1 mb-4">
           <span
@@ -114,12 +114,12 @@ const COLOR_BADGE: Record<string, string> = {
           >
             {{ entry.card.name }}
           </span>
-          <span v-if="deck.cards.length > 5" class="text-[11px] text-gray-600 self-center">
+          <span v-if="deck.cards.length > 5" class="text-[11px] text-ds-slate/50 self-center">
             +{{ deck.cards.length - 5 }} more
           </span>
         </div>
 
-        <p class="text-xs text-gray-600">
+        <p class="text-xs text-ds-slate/50">
           {{ deck.cards.reduce((s, c) => s + c.quantity, 0) }} cards
         </p>
       </div>

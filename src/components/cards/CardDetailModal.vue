@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { DigimonCard } from '@/models/Card'
 import { useDeckStore } from '@/stores/deckStore'
+import BaseButton from '@/components/ui/BaseButton.vue'
 
 const props = defineProps<{
   card: DigimonCard | null
@@ -176,17 +177,18 @@ function highlightEffect(text: string, context: 'main' | 'source' = 'main'): str
         @click.self="emit('close')"
       >
         <div
-          class="relative max-w-4xl w-full rounded-2xl border bg-gray-950 p-6 shadow-2xl flex flex-col sm:flex-row gap-6"
+          class="relative max-w-4xl w-full rounded-2xl border bg-ds-midnight p-6 shadow-2xl flex flex-col sm:flex-row gap-6"
           :class="card ? (COLOR_STYLE[card.color] ?? 'border-gray-700') : ''"
         >
           <!-- Close button -->
-          <button
-            @click="emit('close')"
-            class="absolute top-4 right-4 text-gray-500 hover:text-white w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-800 transition-colors"
+          <BaseButton
+            variant="ghost"
+            size="sm"
+            iconOnly
+            class="absolute top-4 right-4"
             aria-label="Close"
-          >
-            ✕
-          </button>
+            @click="emit('close')"
+          >✕</BaseButton>
 
           <!-- Card image -->
           <div class="w-full sm:w-80 shrink-0">
@@ -200,52 +202,52 @@ function highlightEffect(text: string, context: 'main' | 'source' = 'main'): str
 
           <!-- Card details -->
           <div class="flex-1 min-w-0">
-            <h2 class="text-xl font-bold text-white mb-0.5 pr-8">{{ card.name }}</h2>
-            <p class="text-sm text-gray-500 mb-4">{{ card.cardnumber }} · {{ card.set_name }}</p>
+            <h2 class="text-xl font-bold text-ds-soft-white mb-0.5 pr-8">{{ card.name }}</h2>
+            <p class="text-sm text-ds-slate/60 mb-4">{{ card.cardnumber }} · {{ card.set_name }}</p>
 
             <div class="grid grid-cols-2 gap-x-4 gap-y-2 mb-4">
               <div v-if="card.type" class="flex flex-col">
-                <span class="text-[11px] text-gray-500 uppercase tracking-wider">Type</span>
-                <span class="text-sm text-white">{{ card.type }}</span>
+                <span class="text-[11px] text-ds-slate/60 uppercase tracking-wider">Type</span>
+                <span class="text-sm text-ds-soft-white">{{ card.type }}</span>
               </div>
               <div class="flex flex-col">
-                <span class="text-[11px] text-gray-500 uppercase tracking-wider">Color</span>
-                <span class="text-sm text-white">{{ card.color }}</span>
+                <span class="text-[11px] text-ds-slate/60 uppercase tracking-wider">Color</span>
+                <span class="text-sm text-ds-soft-white">{{ card.color }}</span>
               </div>
               <div v-if="card.level" class="flex flex-col">
-                <span class="text-[11px] text-gray-500 uppercase tracking-wider">Level</span>
-                <span class="text-sm text-white">Lv.{{ card.level }}</span>
+                <span class="text-[11px] text-ds-slate/60 uppercase tracking-wider">Level</span>
+                <span class="text-sm text-ds-soft-white">Lv.{{ card.level }}</span>
               </div>
               <div v-if="card.dp" class="flex flex-col">
-                <span class="text-[11px] text-gray-500 uppercase tracking-wider">DP</span>
-                <span class="text-sm text-white">{{ card.dp }}</span>
+                <span class="text-[11px] text-ds-slate/60 uppercase tracking-wider">DP</span>
+                <span class="text-sm text-ds-soft-white">{{ card.dp }}</span>
               </div>
               <div v-if="card.playCost != null" class="flex flex-col">
-                <span class="text-[11px] text-gray-500 uppercase tracking-wider">Play Cost</span>
-                <span class="text-sm text-white">{{ card.playCost }}</span>
+                <span class="text-[11px] text-ds-slate/60 uppercase tracking-wider">Play Cost</span>
+                <span class="text-sm text-ds-soft-white">{{ card.playCost }}</span>
               </div>
               <div class="flex flex-col">
-                <span class="text-[11px] text-gray-500 uppercase tracking-wider">Rarity</span>
-                <span class="text-sm text-white">{{ card.rarity }}</span>
+                <span class="text-[11px] text-ds-slate/60 uppercase tracking-wider">Rarity</span>
+                <span class="text-sm text-ds-soft-white">{{ card.rarity }}</span>
               </div>
             </div>
 
             <div v-if="card.mainEffect" class="mb-3">
-              <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Effect</p>
-              <div class="bg-gray-900 border border-gray-800 rounded-lg p-3 text-sm text-gray-300 leading-relaxed" v-html="highlightEffect(card.mainEffect, 'main')" />
+              <p class="text-[11px] text-ds-slate/60 uppercase tracking-wider mb-1">Effect</p>
+              <div class="bg-ds-navy border border-ds-neon/20 rounded-lg p-3 text-sm text-ds-soft-white/80 leading-relaxed" v-html="highlightEffect(card.mainEffect, 'main')" />
             </div>
             <div v-if="card.sourceEffect" class="mb-4">
-              <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Source Effect</p>
-              <div class="bg-gray-900 border border-gray-800 rounded-lg p-3 text-sm text-gray-300 leading-relaxed" v-html="highlightEffect(card.sourceEffect.replace(/^Security Effect\s*/i, ''), 'source')" />
+              <p class="text-[11px] text-ds-slate/60 uppercase tracking-wider mb-1">Source Effect</p>
+              <div class="bg-ds-navy border border-ds-neon/20 rounded-lg p-3 text-sm text-ds-soft-white/80 leading-relaxed" v-html="highlightEffect(card.sourceEffect.replace(/^Security Effect\s*/i, ''), 'source')" />
             </div>
 
-            <button
+            <BaseButton
               v-if="canAdd"
+              variant="primary"
+              size="md"
+              class="w-full"
               @click="emit('add-to-deck', card)"
-              class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
-            >
-              + Add to Deck
-            </button>
+            >+ Add to Deck</BaseButton>
           </div>
         </div>
       </div>

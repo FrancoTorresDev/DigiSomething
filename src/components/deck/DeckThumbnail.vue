@@ -25,10 +25,10 @@ const COLOR_BORDER: Record<string, string> = {
   <div class="relative group cursor-pointer">
     <div
       class="relative rounded overflow-hidden border-2 transition-transform duration-150 group-hover:scale-105"
-      :class="COLOR_BORDER[entry.card.color] ?? 'border-gray-700'"
+      :class="COLOR_BORDER[entry.card.color] ?? 'border-ds-neon/30'"
     >
       <!-- Card image -->
-      <div class="aspect-[2/3] bg-gray-800">
+      <div class="aspect-[2/3] bg-ds-midnight">
         <img
           v-if="entry.card.imgurl"
           :src="entry.card.imgurl"
@@ -38,7 +38,7 @@ const COLOR_BORDER: Record<string, string> = {
         />
         <div
           v-else
-          class="w-full h-full flex items-center justify-center text-gray-600 text-[9px] text-center p-1"
+          class="w-full h-full flex items-center justify-center text-ds-slate/30 text-[9px] text-center p-1"
         >
           {{ entry.card.name }}
         </div>
@@ -52,7 +52,7 @@ const COLOR_BORDER: Record<string, string> = {
         >−</button>
         <span
           class="font-bold text-xs leading-none"
-          :class="entry.quantity >= 4 ? 'text-yellow-400' : 'text-white'"
+          :class="entry.quantity >= 4 ? 'text-ds-gold' : 'text-ds-soft-white'"
         >×{{ entry.quantity }}</span>
         <button
           @click.stop="emit('increment')"

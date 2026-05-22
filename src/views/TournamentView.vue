@@ -136,8 +136,8 @@ onMounted(() => loadTournaments())
   <div class="max-w-screen-xl mx-auto px-4 py-10">
     <!-- Header -->
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-white mb-1">Tournament Results</h1>
-      <p class="text-gray-400">Top standings and decklists from official Digimon TCG events</p>
+      <h1 class="text-3xl font-bold text-ds-soft-white mb-1">Tournament Results</h1>
+      <p class="text-ds-slate">Top standings and decklists from official Digimon TCG events</p>
     </div>
 
     <!-- Split layout -->
@@ -146,15 +146,15 @@ onMounted(() => loadTournaments())
       <div class="space-y-2 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
         <div v-if="tournamentsLoading" class="flex justify-center py-10">
           <div
-            class="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"
+            class="w-8 h-8 border-2 border-ds-gold border-t-transparent rounded-full animate-spin"
           />
         </div>
 
-        <div v-else-if="tournamentsError" class="text-center py-10 text-gray-500">
+        <div v-else-if="tournamentsError" class="text-center py-10 text-ds-slate">
           <p>{{ tournamentsError }}</p>
           <button
             @click="loadTournaments()"
-            class="mt-2 text-sm text-blue-400 hover:underline"
+            class="mt-2 text-sm text-ds-cyan hover:underline"
           >
             Retry
           </button>
@@ -162,7 +162,7 @@ onMounted(() => loadTournaments())
 
         <div
           v-else-if="tournaments.length === 0"
-          class="text-center py-10 text-gray-600 text-sm"
+          class="text-center py-10 text-ds-slate/50 text-sm"
         >
           No tournaments found.
         </div>
@@ -171,15 +171,15 @@ onMounted(() => loadTournaments())
           v-for="t in tournaments"
           :key="t.id"
           @click="selectTournament(t)"
-          class="w-full text-left bg-gray-900 border rounded-xl px-4 py-3 transition-all hover:border-gray-600"
+          class="w-full text-left bg-ds-navy border rounded-xl px-4 py-3 transition-all hover:border-ds-neon/50"
           :class="
             selectedTournament?.id === t.id
-              ? 'border-yellow-400/60 bg-gray-800'
-              : 'border-gray-800'
+              ? 'border-ds-gold/60 bg-ds-midnight'
+              : 'border-ds-neon/20'
           "
         >
-          <p class="text-white text-sm font-medium leading-tight mb-1 truncate">{{ t.name }}</p>
-          <div class="flex items-center gap-2 text-xs text-gray-500">
+          <p class="text-ds-soft-white text-sm font-medium leading-tight mb-1 truncate">{{ t.name }}</p>
+          <div class="flex items-center gap-2 text-xs text-ds-slate">
             <span>{{ formatDate(t.date) }}</span>
             <span>·</span>
             <span>{{ t.players }} players</span>
@@ -192,7 +192,7 @@ onMounted(() => loadTournaments())
         <!-- Empty state -->
         <div
           v-if="!selectedTournament && !tournamentsLoading"
-          class="h-64 flex items-center justify-center text-gray-600 border border-dashed border-gray-800 rounded-xl text-sm"
+          class="h-64 flex items-center justify-center text-ds-slate/50 border border-dashed border-ds-neon/20 rounded-xl text-sm"
         >
           Select a tournament to see standings
         </div>
@@ -200,17 +200,17 @@ onMounted(() => loadTournaments())
         <!-- Standings loading -->
         <div v-else-if="standingsLoading" class="flex justify-center py-16">
           <div
-            class="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"
+            class="w-8 h-8 border-2 border-ds-gold border-t-transparent rounded-full animate-spin"
           />
         </div>
 
         <!-- Standings error -->
-        <div v-else-if="standingsError" class="text-center py-16 text-gray-500 text-sm">
+        <div v-else-if="standingsError" class="text-center py-16 text-ds-slate text-sm">
           <p>{{ standingsError }}</p>
           <button
             v-if="selectedTournament"
             @click="selectTournament(selectedTournament)"
-            class="mt-2 text-blue-400 hover:underline"
+            class="mt-2 text-ds-cyan hover:underline"
           >
             Retry
           </button>
@@ -218,14 +218,14 @@ onMounted(() => loadTournaments())
 
         <!-- Standings table -->
         <div v-else-if="standings.length > 0">
-          <h2 class="text-white font-semibold text-lg mb-3 truncate">
+          <h2 class="text-ds-soft-white font-semibold text-lg mb-3 truncate">>
             {{ selectedTournament?.name }}
           </h2>
-          <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div class="bg-ds-navy border border-ds-neon/20 rounded-xl overflow-hidden">
             <table class="w-full text-sm">
               <thead>
                 <tr
-                  class="border-b border-gray-800 text-gray-500 text-xs uppercase tracking-wide"
+                  class="border-b border-ds-neon/20 text-ds-slate text-xs uppercase tracking-wide"
                 >
                   <th class="text-left px-4 py-3 w-12">#</th>
                   <th class="text-left px-4 py-3">Player</th>
@@ -239,50 +239,50 @@ onMounted(() => loadTournaments())
                   v-for="s in standings.slice(0, 64)"
                   :key="s.player"
                   @click="openDeck(s)"
-                  class="border-b border-gray-800/50 last:border-0 hover:bg-gray-800/60 transition-colors cursor-pointer"
+                  class="border-b border-ds-neon/10 last:border-0 hover:bg-ds-midnight/60 transition-colors cursor-pointer"
                 >
                   <td class="px-4 py-3">
                     <span
                       class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
                       :class="
                         s.placing === 1
-                          ? 'bg-yellow-400 text-gray-900'
+                          ? 'bg-ds-gold text-ds-midnight'
                           : s.placing === 2
-                            ? 'bg-gray-400 text-gray-900'
+                            ? 'bg-ds-slate text-ds-midnight'
                             : s.placing === 3
                               ? 'bg-amber-700 text-white'
-                              : 'text-gray-500'
+                              : 'text-ds-slate'
                       "
                     >
                       {{ s.placing }}
                     </span>
                   </td>
                   <td class="px-4 py-3">
-                    <span class="text-white font-medium">{{ s.name || s.player }}</span>
+                    <span class="text-ds-soft-white font-medium">{{ s.name || s.player }}</span>
                     <span
                       v-if="s.country"
                       class="ml-2 text-base"
                       :title="s.country"
                     >{{ flagEmoji(s.country) }}</span>
                   </td>
-                  <td class="px-4 py-3 text-gray-400 hidden md:table-cell">
+                    <td class="px-4 py-3 text-ds-slate hidden md:table-cell">
                     {{ s.deck?.name ?? '—' }}
                   </td>
                   <td class="px-4 py-3 text-right hidden sm:table-cell">
-                    <span class="font-mono text-xs text-gray-500">
+                      <span class="font-mono text-xs text-ds-slate/60">
                       {{ s.record.wins }}-{{ s.record.losses
                       }}<span v-if="s.record.ties">-{{ s.record.ties }}</span>
                     </span>
                   </td>
                   <td class="px-2 py-3 text-center">
-                    <span v-if="s.decklist" class="text-yellow-400 text-xs" title="Decklist available">📋</span>
-                    <span v-else class="text-gray-700 text-xs">—</span>
+                    <span v-if="s.decklist" class="text-ds-gold text-xs" title="Decklist available">📋</span>
+                    <span v-else class="text-ds-slate/30 text-xs">—</span>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p v-if="standings.length > 64" class="text-xs text-gray-600 mt-2 text-right">
+          <p v-if="standings.length > 64" class="text-xs text-ds-slate/50 mt-2 text-right">
             Showing top 64 of {{ standings.length }} players
           </p>
         </div>
@@ -298,22 +298,22 @@ onMounted(() => loadTournaments())
         <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="closeModal" />
 
         <div
-          class="relative bg-gray-900 border border-gray-700 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[88vh] sm:max-h-[82vh] flex flex-col z-10"
+          class="relative bg-ds-navy border border-ds-neon/30 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[88vh] sm:max-h-[82vh] flex flex-col z-10"
         >
           <!-- Modal header -->
-          <div class="flex items-start justify-between p-5 border-b border-gray-800 shrink-0">
+          <div class="flex items-start justify-between p-5 border-b border-ds-neon/20 shrink-0">
             <div class="min-w-0">
-              <h3 class="text-white font-bold text-lg truncate">
+              <h3 class="text-ds-soft-white font-bold text-lg truncate">
                 {{ selectedStanding.name || selectedStanding.player }}
                 <span
                   v-if="selectedStanding.country"
                   class="text-base font-normal ml-1"
                 >{{ flagEmoji(selectedStanding.country) }}</span>
               </h3>
-              <p class="text-gray-400 text-sm mt-0.5">
+              <p class="text-ds-slate text-sm mt-0.5">
                 #{{ selectedStanding.placing }} ·
                 {{ selectedStanding.deck?.name ?? 'Unknown deck' }}
-                <span class="ml-2 font-mono text-gray-500 text-xs">
+                <span class="ml-2 font-mono text-ds-slate/60 text-xs">
                   {{ selectedStanding.record.wins }}-{{ selectedStanding.record.losses
                   }}<span v-if="selectedStanding.record.ties"
                     >-{{ selectedStanding.record.ties }}</span
@@ -323,7 +323,7 @@ onMounted(() => loadTournaments())
             </div>
             <button
               @click="closeModal"
-              class="text-gray-500 hover:text-white text-xl leading-none ml-4 mt-0.5 shrink-0"
+              class="text-ds-slate hover:text-ds-soft-white text-xl leading-none ml-4 mt-0.5 shrink-0"
             >
               ✕
             </button>
@@ -334,7 +334,7 @@ onMounted(() => loadTournaments())
             <!-- No decklist -->
             <div
               v-if="!selectedStanding.decklist"
-              class="text-center py-12 text-gray-500 text-sm"
+              class="text-center py-12 text-ds-slate text-sm"
             >
               Decklist was not submitted for this tournament.
             </div>
@@ -344,7 +344,7 @@ onMounted(() => loadTournaments())
               <div
                 v-for="entry in deckCards"
                 :key="entry.cardnumber"
-                class="relative rounded-lg overflow-hidden bg-gray-800 aspect-[5/7]"
+                class="relative rounded-lg overflow-hidden bg-ds-midnight aspect-[5/7]"
               >
                 <img
                   :src="entry.imgurl"

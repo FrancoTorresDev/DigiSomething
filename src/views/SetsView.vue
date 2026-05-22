@@ -34,39 +34,39 @@ function openSet(set: DigimonSet) {
 
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white mb-1">Card Sets</h1>
-      <p class="text-gray-400">Browse all Digimon Card Game releases</p>
+      <h1 class="text-3xl font-bold text-ds-soft-white mb-1">Card Sets</h1>
+      <p class="text-ds-slate">Browse all Digimon Card Game releases</p>
     </div>
 
     <!-- Controls -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8">
       <!-- Search -->
-      <div class="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 w-full sm:w-72">
-        <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <div class="flex items-center gap-2 bg-ds-navy border border-ds-neon/20 rounded-lg px-3 py-2 w-full sm:w-72 focus-within:border-ds-cyan transition-colors">
+        <svg class="w-4 h-4 text-ds-slate shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
         <input
           v-model="search"
           type="text"
           placeholder="Search sets..."
-          class="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-600 outline-none"
+          class="flex-1 bg-transparent text-sm text-ds-soft-white placeholder-ds-slate/60 outline-none"
         />
       </div>
 
       <!-- Type filter tabs -->
-      <div class="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
+      <div class="flex items-center gap-1 bg-ds-navy border border-ds-neon/20 rounded-lg p-1">
         <button
           v-for="t in TYPES"
           :key="t"
           @click="activeType = t"
-          class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+          class="px-3 py-1.5 rounded-md text-sm font-display font-medium transition-colors"
           :class="activeType === t
-            ? 'bg-gray-700 text-white'
-            : 'text-gray-500 hover:text-gray-300'"
+            ? 'bg-ds-royal/30 text-ds-cyan border border-ds-neon/40'
+            : 'text-ds-slate hover:text-ds-soft-white'"
         >{{ t }}</button>
       </div>
 
-      <span class="text-sm text-gray-600 ml-auto">{{ filteredSets.length }} sets</span>
+      <span class="text-sm text-ds-slate/60 ml-auto">{{ filteredSets.length }} sets</span>
     </div>
 
     <!-- Sets grid -->
@@ -75,10 +75,10 @@ function openSet(set: DigimonSet) {
         v-for="set in filteredSets"
         :key="set.code"
         @click="openSet(set)"
-        class="group flex flex-col bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 hover:scale-[1.02] transition-all duration-150 text-left"
+        class="group flex flex-col bg-ds-navy border border-ds-neon/20 rounded-xl overflow-hidden hover:border-ds-neon/60 hover:scale-[1.02] transition-all duration-150 text-left"
       >
         <!-- Card image -->
-        <div class="relative aspect-[3/4] bg-gray-800 overflow-hidden">
+        <div class="relative aspect-[3/4] bg-ds-midnight overflow-hidden">
           <img
             :src="setImgUrl(set)"
             :alt="set.name"
@@ -88,7 +88,7 @@ function openSet(set: DigimonSet) {
             @error="onImgError"
           />
           <!-- Overlay gradient -->
-          <div class="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent pointer-events-none" />
+          <div class="absolute inset-0 bg-gradient-to-t from-ds-navy/80 via-transparent to-transparent pointer-events-none" />
           <!-- Type badge top-left -->
           <span
             class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded leading-none"
@@ -98,9 +98,9 @@ function openSet(set: DigimonSet) {
 
         <!-- Info -->
         <div class="px-3 py-2.5">
-          <p class="text-[11px] font-bold text-yellow-400 mb-0.5 leading-none">{{ set.code }}</p>
-          <p class="text-xs text-white font-medium leading-tight truncate">{{ set.name }}</p>
-          <p class="text-[10px] text-gray-600 mt-1">
+          <p class="text-[11px] font-bold font-display text-ds-gold mb-0.5 leading-none">{{ set.code }}</p>
+          <p class="text-xs text-ds-soft-white font-medium leading-tight truncate">{{ set.name }}</p>
+          <p class="text-[10px] text-ds-slate/50 mt-1">
             {{ set.releaseDate.replace('-', '/') }}
           </p>
         </div>
@@ -109,8 +109,8 @@ function openSet(set: DigimonSet) {
 
     <!-- Empty -->
     <div v-if="filteredSets.length === 0" class="text-center py-20">
-      <p class="text-gray-500">No sets match your search.</p>
-      <button @click="search = ''; activeType = 'All'" class="mt-2 text-sm text-yellow-400 hover:text-yellow-300">
+      <p class="text-ds-slate">No sets match your search.</p>
+      <button @click="search = ''; activeType = 'All'" class="mt-2 text-sm text-ds-gold hover:text-ds-cyan">
         Clear filters
       </button>
     </div>
