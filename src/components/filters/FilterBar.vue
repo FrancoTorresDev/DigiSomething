@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useCardFilters } from '@/composables/useCardFilters'
 import RangeSlider from './RangeSlider.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
 
 const {
   filters,
@@ -19,76 +20,81 @@ const showAdvanced = ref(false)
 </script>
 
 <template>
-  <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-    <div class="flex flex-wrap gap-3 items-center">
+  <div class="bg-ds-navy rounded-xl p-3 sm:p-4 border border-ds-neon/20">
+    <div class="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 items-stretch sm:items-center">
       <!-- Search -->
-      <div class="relative flex-1 min-w-48 flex">
+      <div class="relative flex w-full sm:flex-1 sm:min-w-48">
         <input
           v-model="filters.search"
           type="text"
           :placeholder="filters.searchInText ? 'Search card text...' : 'Search by name...'"
-          class="flex-1 bg-gray-800 text-white placeholder-gray-500 text-sm px-4 py-2 rounded-l-lg border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
+          class="flex-1 bg-ds-midnight text-ds-soft-white placeholder-ds-slate/50 text-sm px-4 py-2 rounded-l-lg border border-ds-neon/30 focus:border-ds-cyan focus:outline-none transition-colors"
         />
         <button
           @click="filters.searchInText = !filters.searchInText"
           :title="filters.searchInText ? 'Searching name + effect text' : 'Search name only'"
-          class="px-3 py-2 text-xs font-medium rounded-r-lg border border-l-0 border-gray-700 transition-colors shrink-0"
+          class="px-3 py-2 text-xs font-medium rounded-r-lg border border-l-0 border-ds-neon/30 transition-colors shrink-0"
           :class="filters.searchInText
-            ? 'bg-yellow-500/20 text-yellow-400 border-yellow-700'
-            : 'bg-gray-800 text-gray-500 hover:text-gray-300'"
+            ? 'bg-ds-gold/20 text-ds-gold border-ds-gold/40'
+            : 'bg-ds-midnight text-ds-slate hover:text-ds-soft-white'"
         >
           {{ filters.searchInText ? 'Text' : 'Name' }}
         </button>
       </div>
 
-      <!-- Color -->
-      <select
-        v-model="filters.color"
-        class="bg-gray-800 text-sm text-white px-3 py-2 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
-      >
-        <option value="">Color: All</option>
-        <option v-for="c in availableColors" :key="c" :value="c">{{ c }}</option>
-      </select>
+      <!-- Row 2 on mobile: Color + Type -->
+      <div class="flex gap-2 w-full sm:w-auto sm:contents">
+        <!-- Color -->
+        <select
+          v-model="filters.color"
+          class="bg-ds-midnight text-sm text-ds-soft-white px-3 py-2 rounded-lg border border-ds-neon/30 focus:border-ds-cyan focus:outline-none transition-colors flex-1 sm:flex-none"
+        >
+          <option value="">Color: All</option>
+          <option v-for="c in availableColors" :key="c" :value="c">{{ c }}</option>
+        </select>
 
-      <!-- Type -->
-      <select
-        v-model="filters.type"
-        class="bg-gray-800 text-sm text-white px-3 py-2 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
-      >
-        <option value="">Type: All</option>
-        <option v-for="t in availableTypes" :key="t" :value="t">{{ t }}</option>
-      </select>
+        <!-- Type -->
+        <select
+          v-model="filters.type"
+          class="bg-ds-midnight text-sm text-ds-soft-white px-3 py-2 rounded-lg border border-ds-neon/30 focus:border-ds-cyan focus:outline-none transition-colors flex-1 sm:flex-none"
+        >
+          <option value="">Type: All</option>
+          <option v-for="t in availableTypes" :key="t" :value="t">{{ t }}</option>
+        </select>
+      </div>
 
-      <!-- Rarity -->
-      <select
-        v-model="filters.rarity"
-        class="bg-gray-800 text-sm text-white px-3 py-2 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
-      >
-        <option value="">Rarity: All</option>
-        <option v-for="r in availableRarities" :key="r" :value="r">{{ r }}</option>
-      </select>
+      <!-- Row 3 on mobile: Rarity + Advanced + Reset -->
+      <div class="flex gap-2 w-full sm:w-auto sm:contents items-center">
+        <!-- Rarity -->
+        <select
+          v-model="filters.rarity"
+          class="bg-ds-midnight text-sm text-ds-soft-white px-3 py-2 rounded-lg border border-ds-neon/30 focus:border-ds-cyan focus:outline-none transition-colors flex-1 sm:flex-none"
+        >
+          <option value="">Rarity: All</option>
+          <option v-for="r in availableRarities" :key="r" :value="r">{{ r }}</option>
+        </select>
 
-      <!-- Advanced toggle -->
-      <button
-        @click="showAdvanced = !showAdvanced"
-        class="text-sm px-3 py-2 rounded-lg border transition-colors"
-        :class="showAdvanced ? 'text-yellow-400 border-yellow-800 bg-yellow-950' : 'text-gray-400 border-gray-700 hover:border-gray-500'"
-      >
-        {{ showAdvanced ? '▲' : '▼' }} Advanced
-      </button>
+        <!-- Advanced toggle -->
+        <button
+          @click="showAdvanced = !showAdvanced"
+          class="text-sm px-3 py-2 rounded-lg border transition-colors shrink-0"
+          :class="showAdvanced ? 'text-ds-gold border-ds-gold/40 bg-ds-gold/10' : 'text-ds-slate border-ds-neon/30 hover:border-ds-neon/60'"
+        >
+          {{ showAdvanced ? '▲' : '▼' }} Advanced
+        </button>
 
-      <!-- Reset -->
-      <button
-        v-if="activeFilterCount > 0"
-        @click="resetFilters"
-        class="text-sm text-red-400 hover:text-red-300 px-3 py-2 border border-red-900 hover:border-red-700 rounded-lg transition-colors"
-      >
-        Reset ({{ activeFilterCount }})
-      </button>
+        <!-- Reset -->
+        <BaseButton
+          v-if="activeFilterCount > 0"
+          variant="danger"
+          size="sm"
+          @click="resetFilters"
+        >Reset ({{ activeFilterCount }})</BaseButton>
+      </div>
     </div>
 
     <!-- Advanced range filters -->
-    <div v-if="showAdvanced" class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-5 border-t border-gray-800 pt-4">
+      <div v-if="showAdvanced" class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-5 border-t border-ds-neon/20 pt-4">
       <RangeSlider
         label="Level"
         :min="levelMin"

@@ -4,12 +4,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useDeckStore } from '@/stores/deckStore'
 import { getDeckById } from '@/services/deckService'
-import { incrementVote, hasUserVoted, recordUserVote, saveGuide, saveMatch, getMatches, deleteMatch, saveMatchup, getMatchups, deleteMatchup } from '@/services/deckService'
+import { incrementVote, hasUserVoted, recordUserVote, saveGuide, saveMatch, getMatches, deleteMatch, saveMatchup, getMatchups, deleteMatchup, updateDeck as updateDeckService } from '@/services/deckService'
 import CardDetailModal from '@/components/cards/CardDetailModal.vue'
 import ExportImageModal from '@/components/deck/ExportImageModal.vue'
 import ExportProxiesModal from '@/components/deck/ExportProxiesModal.vue'
 import DeckVersionsTab from '@/components/deck/DeckVersionsTab.vue'
-import type { Deck, DeckMatch, DeckMatchup } from '@/models/Deck'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import type { Deck, DeckMatch, DeckMatchup, DeckArchetypeTag } from '@/models/Deck'
 import type { DigimonCard } from '@/models/Card'
 
 const route = useRoute()
@@ -228,7 +229,11 @@ function colorDotClass(color: string): string {
   return COLOR_CLASS[color]?.dot ?? 'bg-gray-400'
 }
 
-// ── Status ──────────────────────────────────────────────────────────────────
+// Pricing labels are optional in this view. Keep a safe no-op helper so
+// the deck page still renders if pricing integration is unavailable.
+function cardPriceLabel(_cardnumber: string, _qty: number): string {
+  return ''
+}
 
 const statusLabel = computed(() => {
   if (!deck.value) return 'DRAFT'
@@ -237,18 +242,105 @@ const statusLabel = computed(() => {
 })
 
 const statusClass = computed(() => {
-  if (!deck.value) return 'bg-gray-700 text-gray-300'
+  if (!deck.value) return 'bg-ds-navy text-ds-slate'
   if (deck.value.isPublic) return 'bg-green-900/60 text-green-400 border border-green-700'
-  return 'bg-gray-800 text-gray-400 border border-gray-700'
+  return 'bg-ds-midnight text-ds-slate border border-ds-neon/20'
 })
 
 const isOwner = computed(() => auth.user?.uid === deck.value?.ownerId)
+const archetypeSaving = ref(false)
+const archetypeOptions: Array<{
+  value: DeckArchetypeTag
+  label: string
+  activeClass: string
+}> = [
+  {
+    value: 'MIDRANGE_YELLOW',
+    label: 'MIDRANGE',
+    activeClass: 'text-yellow-300 border-yellow-400/70 bg-yellow-500/15'
+  },
+  {
+    value: 'CONTROL_BLUE',
+    label: 'CONTROL',
+    activeClass: 'text-blue-300 border-blue-400/70 bg-blue-500/15'
+  },
+  {
+    value: 'AGGRO_RED',
+    label: 'AGGRO',
+    activeClass: 'text-red-300 border-red-400/70 bg-red-500/15'
+  }
+]
+
+function normalizeArchetypeTag(tag?: DeckArchetypeTag): DeckArchetypeTag | undefined {
+  if (!tag) return undefined
+  if (tag === 'MIDRANGE') return 'MIDRANGE_YELLOW'
+  if (tag === 'CONTROL') return 'CONTROL_BLUE'
+  if (tag === 'AGGRO') return 'AGGRO_RED'
+  return tag
+}
+
+const selectedArchetypeTag = computed(() => normalizeArchetypeTag(deck.value?.archetypeTag))
+
+function archetypeLabel(tag?: DeckArchetypeTag): string {
+  const normalized = normalizeArchetypeTag(tag)
+  if (normalized === 'MIDRANGE_YELLOW') return 'MIDRANGE'
+  if (normalized === 'CONTROL_BLUE') return 'CONTROL'
+  if (normalized === 'AGGRO_RED') return 'AGGRO'
+  return ''
+}
+
+function archetypeActiveClass(tag?: DeckArchetypeTag): string {
+  const normalized = normalizeArchetypeTag(tag)
+  if (normalized === 'MIDRANGE_YELLOW') return 'text-yellow-300 border-yellow-400/70 bg-yellow-500/15'
+  if (normalized === 'CONTROL_BLUE') return 'text-blue-300 border-blue-400/70 bg-blue-500/15'
+  if (normalized === 'AGGRO_RED') return 'text-red-300 border-red-400/70 bg-red-500/15'
+  return 'text-ds-cyan border-ds-cyan/60 bg-ds-cyan/10'
+}
+
+async function setArchetypeTag(tag: DeckArchetypeTag): Promise<void> {
+  if (!deck.value || !isOwner.value || !deck.value.isPublic || archetypeSaving.value) return
+  if (selectedArchetypeTag.value === tag) return
+
+  archetypeSaving.value = true
+  try {
+    await updateDeckService(deck.value.id, { archetypeTag: tag })
+    deck.value.archetypeTag = tag
+  } finally {
+    archetypeSaving.value = false
+  }
+}
 
 // ── Actions ─────────────────────────────────────────────────────────────────
 
 function editDeck() {
   if (!deck.value) return
   deckStore.loadDeck(deck.value)
+  router.push({ name: 'deck-builder' })
+}
+
+function copyToBuilder() {
+  if (!deck.value) return
+
+  const source = deck.value
+  const copied: Deck = {
+    ...source,
+    id: '',
+    ownerId: auth.user?.uid ?? '',
+    name: `Copy of ${source.name}`,
+    isPublic: false,
+    votes: 0,
+    ownerName: auth.displayName ?? undefined,
+    ownerPhoto: auth.photoURL ?? undefined,
+    qrCodeUrl: undefined,
+    currentVersion: undefined,
+    createdAt: undefined,
+    cards: source.cards.map((entry) => ({
+      quantity: entry.quantity,
+      card: { ...entry.card },
+    })),
+  }
+
+  deckStore.loadDeck(copied)
   router.push({ name: 'deck-builder' })
 }
 
@@ -519,46 +611,56 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-950 text-white">
+  <div class="min-h-screen bg-ds-midnight text-ds-soft-white">
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center items-center h-64">
-      <div class="w-10 h-10 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      <div class="w-10 h-10 border-2 border-ds-gold border-t-transparent rounded-full animate-spin" />
     </div>
 
     <!-- Not found -->
     <div v-else-if="notFound" class="flex flex-col items-center justify-center h-64 gap-4">
-      <p class="text-gray-400 text-lg">Deck not found.</p>
-      <RouterLink to="/gallery" class="text-yellow-400 hover:text-yellow-300 text-sm">← Back to Gallery</RouterLink>
+      <p class="text-ds-slate text-lg">Deck not found.</p>
+      <RouterLink to="/gallery" class="text-ds-gold hover:text-ds-cyan text-sm">← Back to Gallery</RouterLink>
     </div>
 
     <template v-else-if="deck">
       <!-- ── Hero Header ───────────────────────────────────────────────────── -->
-      <div class="border-b border-gray-800 bg-gray-900/60 px-6 py-5">
+      <div class="border-b border-ds-neon/20 bg-ds-navy/60 px-4 sm:px-6 py-4 sm:py-5">
         <div class="max-w-[1400px] mx-auto">
           <!-- Top row -->
           <div class="flex items-start justify-between gap-4 flex-wrap">
             <div class="flex items-center gap-3 flex-wrap">
-              <h1 class="text-3xl font-bold text-white">{{ deck.name }}</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-ds-soft-white">{{ deck.name }}</h1>
               <span class="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider" :class="statusClass">
                 {{ statusLabel }}
               </span>
             </div>
             <!-- Right actions -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <button
                 v-if="isOwner"
                 @click="editDeck"
-                class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-yellow-400 border border-yellow-700 bg-yellow-950/40 hover:bg-yellow-900/50 rounded-lg transition-colors"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ds-slate border border-ds-neon/30 hover:border-ds-neon rounded-lg transition-colors"
               >
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 Build
               </button>
+
+              <button
+                v-if="!isOwner"
+                @click="copyToBuilder"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ds-slate border border-ds-neon/30 hover:border-ds-cyan/60 hover:text-ds-soft-white rounded-lg transition-colors"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 10h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                Copy
+              </button>
+
               <!-- Export dropdown -->
               <div class="relative" ref="exportMenuRef">
                 <button
                   @click="showExportMenu = !showExportMenu"
-                  class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-300 border border-gray-700 hover:border-gray-500 rounded-lg transition-colors"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ds-slate border border-ds-neon/30 hover:border-ds-neon rounded-lg transition-colors"
                 >
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                   Export
@@ -566,37 +668,37 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 </button>
                 <div
                   v-if="showExportMenu"
-                  class="absolute right-0 top-full mt-1.5 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl z-20 py-1.5 w-52"
+                  class="absolute right-0 top-full mt-1.5 bg-ds-navy border border-ds-neon/20 rounded-xl shadow-2xl z-20 py-1.5 w-52"
                 >
                   <button
                     @click="showExportImageModal = true; showExportMenu = false"
-                    class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                    class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ds-slate hover:bg-ds-midnight hover:text-ds-soft-white transition-colors"
                   >
-                    <svg class="w-4 h-4 shrink-0 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <svg class="w-4 h-4 shrink-0 text-ds-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <div class="text-left">
                       <p class="font-medium">Deck Image</p>
-                      <p class="text-xs text-gray-500">Shareable visual</p>
+                      <p class="text-xs text-ds-slate/60">Shareable visual</p>
                     </div>
                   </button>
                   <button
                     @click="showExportProxiesModal = true; showExportMenu = false"
-                    class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                    class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ds-slate hover:bg-ds-midnight hover:text-ds-soft-white transition-colors"
                   >
-                    <svg class="w-4 h-4 shrink-0 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    <svg class="w-4 h-4 shrink-0 text-ds-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                     <div class="text-left">
                       <p class="font-medium">Proxy Cards</p>
-                      <p class="text-xs text-gray-500">Print-ready proxies</p>
+                      <p class="text-xs text-ds-slate/60">Print-ready proxies</p>
                     </div>
                   </button>
-                  <div class="border-t border-gray-800 my-1"></div>
+                  <div class="border-t border-ds-neon/20 my-1"></div>
                   <button
                     @click="exportDeck(); showExportMenu = false"
-                    class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                    class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ds-slate hover:bg-ds-midnight hover:text-ds-soft-white transition-colors"
                   >
-                    <svg class="w-4 h-4 shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <svg class="w-4 h-4 shrink-0 text-ds-slate/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <div class="text-left">
                       <p class="font-medium">Export JSON</p>
-                      <p class="text-xs text-gray-500">Card list as JSON</p>
+                      <p class="text-xs text-ds-slate/60">Card list as JSON</p>
                     </div>
                   </button>
                 </div>
@@ -612,12 +714,39 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 :src="deck.ownerPhoto"
                 :alt="deck.ownerName"
                 referrerpolicy="no-referrer"
-                class="w-6 h-6 rounded-full border border-gray-700"
+                class="w-6 h-6 rounded-full border border-ds-neon/30"
               />
-              <div v-else class="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs text-gray-400">
+              <div v-else class="w-6 h-6 rounded-full bg-ds-navy flex items-center justify-center text-xs text-ds-slate">
                 {{ (deck.ownerName ?? '?')[0] }}
               </div>
-              <span class="text-sm text-gray-300">{{ deck.ownerName }}</span>
+              <span class="text-sm text-ds-soft-white">{{ deck.ownerName }}</span>
+            </div>
+
+            <div v-if="deck.isPublic" class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] uppercase tracking-wider text-ds-slate/60">Archetype</span>
+
+              <template v-if="isOwner">
+                <button
+                  v-for="option in archetypeOptions"
+                  :key="option.value"
+                  @click="setArchetypeTag(option.value)"
+                  :disabled="archetypeSaving"
+                  class="text-[10px] font-semibold px-2 py-0.5 rounded border transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  :class="selectedArchetypeTag === option.value
+                    ? option.activeClass
+                    : 'text-ds-slate border-ds-neon/25 hover:text-ds-soft-white hover:border-ds-neon/50'"
+                >
+                  {{ option.label }}
+                </button>
+              </template>
+
+              <span
+                v-else-if="selectedArchetypeTag"
+                class="text-[10px] font-semibold px-2 py-0.5 rounded border"
+                :class="archetypeActiveClass(selectedArchetypeTag)"
+              >
+                {{ archetypeLabel(selectedArchetypeTag) }}
+              </span>
             </div>
 
             <!-- Vote button -->
@@ -625,13 +754,13 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
               @click="vote"
               :disabled="voted || !auth.isLoggedIn || votingLoading"
               class="flex items-center gap-1 text-sm transition-colors"
-              :class="voted ? 'text-pink-400 cursor-default' : 'text-gray-500 hover:text-pink-400'"
+              :class="voted ? 'text-pink-400 cursor-default' : 'text-ds-slate/50 hover:text-pink-400'"
             >
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
               {{ deck.votes ?? 0 }}
             </button>
 
-            <span class="text-gray-600 text-xs">
+            <span class="text-ds-slate/50 text-xs">
               {{ totalMainCount }} main cards · {{ totalEggCount }} eggs
             </span>
 
@@ -652,46 +781,48 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
           </div>
 
           <!-- Tabs -->
-          <div class="flex items-center gap-1 mt-5 border-b border-gray-800 -mb-px">
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              @click="activeTab = tab.key"
-              class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-              :class="activeTab === tab.key
-                ? 'text-yellow-400 border-yellow-400'
-                : 'text-gray-500 border-transparent hover:text-gray-300'"
-            >
-              {{ tab.label }}
-              <span v-if="tab.key === 'deck'" class="ml-1 text-xs text-gray-600">
-                {{ totalMainCount + totalEggCount }}
-              </span>
-            </button>
+          <div class="overflow-x-auto -mx-4 sm:mx-0">
+            <div class="flex items-center gap-1 mt-5 border-b border-ds-neon/20 -mb-px min-w-max sm:min-w-0 px-4 sm:px-0">
+              <button
+                v-for="tab in tabs"
+                :key="tab.key"
+                @click="activeTab = tab.key"
+                class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors"
+                :class="activeTab === tab.key
+                  ? 'text-ds-gold border-ds-gold'
+                  : 'text-ds-slate border-transparent hover:text-ds-soft-white'"
+              >
+                {{ tab.label }}
+                <span v-if="tab.key === 'deck'" class="ml-1 text-xs text-ds-slate/40">
+                  {{ totalMainCount + totalEggCount }}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- ── Content ───────────────────────────────────────────────────────── -->
-      <div class="max-w-[1400px] mx-auto px-6 py-6">
+      <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
 
         <!-- ── DECK TAB ─────────────────────────────────────────────────────── -->
-        <div v-if="activeTab === 'deck'" class="flex gap-6">
+        <div v-if="activeTab === 'deck'" class="flex flex-col lg:flex-row gap-6">
 
           <!-- Left: card sections -->
           <div class="flex-1 min-w-0 space-y-8">
 
             <!-- View toggle -->
             <div class="flex justify-end">
-              <div class="flex items-center bg-gray-900 border border-gray-800 rounded-lg p-0.5 text-xs font-medium">
+              <div class="flex items-center bg-ds-navy border border-ds-neon/20 rounded-lg p-0.5 text-xs font-medium">
                 <button
                   @click="expandedView = false"
                   class="px-3 py-1.5 rounded-md transition-colors"
-                  :class="!expandedView ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'"
+                  :class="!expandedView ? 'bg-ds-midnight text-ds-soft-white' : 'text-ds-slate hover:text-ds-soft-white'"
                 >Grouped</button>
                 <button
                   @click="expandedView = true"
                   class="px-3 py-1.5 rounded-md transition-colors"
-                  :class="expandedView ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'"
+                  :class="expandedView ? 'bg-ds-midnight text-ds-soft-white' : 'text-ds-slate hover:text-ds-soft-white'"
                 >All copies</button>
               </div>
             </div>
@@ -699,8 +830,8 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
             <!-- Digi-Egg Deck -->
             <section v-if="eggCards.length > 0">
               <div class="flex items-center gap-3 mb-4">
-                <h2 class="text-xs font-bold uppercase tracking-widest text-yellow-500">Digi-Egg Deck</h2>
-                <span class="text-xs font-mono text-gray-500">{{ totalEggCount }}/5</span>
+                <h2 class="text-xs font-bold uppercase tracking-widest text-ds-gold">Digi-Egg Deck</h2>
+                <span class="text-xs font-mono text-ds-slate/60">{{ totalEggCount }}/5</span>
               </div>
               <div class="flex flex-wrap gap-3">
                 <div
@@ -710,10 +841,10 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                   @click="openCard(item.card)"
                 >
                   <div
-                    class="w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
+                    class="w-20 sm:w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
                     :class="cardBorder(item.card.color)"
                   >
-                    <div class="aspect-[2/3] bg-gray-800">
+                    <div class="aspect-[2/3] bg-ds-midnight">
                       <img
                         v-if="item.card.imgurl"
                         :src="item.card.imgurl"
@@ -723,10 +854,17 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                       />
                     </div>
                   </div>
+                  <!-- Quantity badge (top-right) -->
                   <div
                     v-if="item.qty > 1"
-                    class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-yellow-400 text-gray-900 text-xs font-bold flex items-center justify-center shadow"
+                    class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-ds-gold text-ds-midnight text-xs font-bold flex items-center justify-center shadow"
                   >x{{ item.qty }}</div>
+                  <div
+                    v-if="cardPriceLabel(item.card.cardnumber, item.qty)"
+                    class="absolute left-1.5 bottom-1.5 px-1.5 py-0.5 rounded bg-black/70 text-[9px] text-ds-gold font-semibold"
+                  >
+                    {{ cardPriceLabel(item.card.cardnumber, item.qty) }}
+                  </div>
                 </div>
               </div>
             </section>
@@ -734,8 +872,8 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
             <!-- Main Deck by type -->
             <section v-for="group in displayMainByType" :key="group.type">
               <div class="flex items-center gap-3 mb-4">
-                <h2 class="text-xs font-bold uppercase tracking-widest text-gray-300">{{ group.type }}</h2>
-                <span class="text-xs font-mono text-gray-600">{{ group.totalCount }}</span>
+                <h2 class="text-xs font-bold uppercase tracking-widest text-ds-slate">{{ group.type }}</h2>
+                <span class="text-xs font-mono text-ds-slate/40">{{ group.totalCount }}</span>
               </div>
               <div class="flex flex-wrap gap-3">
                 <div
@@ -745,10 +883,10 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                   @click="openCard(item.card)"
                 >
                   <div
-                    class="w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
+                    class="w-20 sm:w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
                     :class="cardBorder(item.card.color)"
                   >
-                    <div class="aspect-[2/3] bg-gray-800">
+                    <div class="aspect-[2/3] bg-ds-midnight">
                       <img
                         v-if="item.card.imgurl"
                         :src="item.card.imgurl"
@@ -756,66 +894,72 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                         class="w-full h-full object-cover"
                         loading="lazy"
                       />
-                      <div v-else class="w-full h-full flex items-center justify-center text-gray-500 text-[10px] text-center p-1">
+                      <div v-else class="w-full h-full flex items-center justify-center text-ds-slate/50 text-[10px] text-center p-1">
                         {{ item.card.name }}
                       </div>
                     </div>
                     <!-- Card name bar -->
-                    <div class="bg-gray-900/90 px-1.5 py-0.5">
-                      <p class="text-[9px] text-gray-300 truncate">{{ item.card.name }}</p>
+                    <div class="bg-ds-navy/90 px-1.5 py-0.5">
+                      <p class="text-[9px] text-ds-soft-white/80 truncate">{{ item.card.name }}</p>
                     </div>
                   </div>
                   <!-- Quantity badge -->
                   <div
                     v-if="item.qty > 1"
-                    class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-yellow-400 text-gray-900 text-xs font-bold flex items-center justify-center shadow"
+                    class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-ds-gold text-ds-midnight text-xs font-bold flex items-center justify-center shadow"
                   >x{{ item.qty }}</div>
                   <!-- Single qty indicator (grouped mode only) -->
                   <div
                     v-else-if="!expandedView"
-                    class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-gray-700 text-gray-400 text-[10px] font-bold flex items-center justify-center"
+                    class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-ds-navy text-ds-slate text-[10px] font-bold flex items-center justify-center"
                   >1</div>
+                  <div
+                    v-if="cardPriceLabel(item.card.cardnumber, item.qty)"
+                    class="absolute left-1.5 bottom-1.5 px-1.5 py-0.5 rounded bg-black/70 text-[9px] text-ds-gold font-semibold"
+                  >
+                    {{ cardPriceLabel(item.card.cardnumber, item.qty) }}
+                  </div>
                 </div>
               </div>
             </section>
 
             <!-- Empty deck -->
-            <div v-if="eggCards.length === 0 && mainCards.length === 0" class="text-center py-20 text-gray-600">
+            <div v-if="eggCards.length === 0 && mainCards.length === 0" class="text-center py-20 text-ds-slate/40">
               This deck has no cards.
             </div>
           </div>
 
           <!-- Right: stats panel -->
-          <div class="w-96 shrink-0">
+          <div class="w-full lg:w-96 shrink-0">
             <div class="sticky top-20 space-y-5 max-h-[calc(100vh-6rem)] overflow-y-auto pr-1">
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-6">
+            <div class="bg-ds-navy border border-ds-neon/20 rounded-xl p-6 space-y-6">
 
               <!-- Key metrics -->
               <div class="grid grid-cols-3 gap-3 text-center">
                 <div>
-                  <div class="text-4xl font-bold text-white">{{ totalMainCount }}</div>
-                  <div class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">Cards</div>
+                  <div class="text-4xl font-bold text-ds-soft-white">{{ totalMainCount }}</div>
+                  <div class="text-[11px] text-ds-slate/60 uppercase tracking-wider mt-1">Cards</div>
                 </div>
                 <div>
-                  <div class="text-4xl font-bold text-white">{{ avgLevel }}</div>
-                  <div class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">Avg Lv</div>
+                  <div class="text-4xl font-bold text-ds-soft-white">{{ avgLevel }}</div>
+                  <div class="text-[11px] text-ds-slate/60 uppercase tracking-wider mt-1">Avg Lv</div>
                 </div>
                 <div>
-                  <div class="text-4xl font-bold text-white">{{ avgDP }}k</div>
-                  <div class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">Avg DP</div>
+                  <div class="text-4xl font-bold text-ds-soft-white">{{ avgDP }}k</div>
+                  <div class="text-[11px] text-ds-slate/60 uppercase tracking-wider mt-1">Avg DP</div>
                 </div>
               </div>
 
-              <div class="border-t border-gray-800" />
+              <div class="border-t border-ds-neon/20" />
 
               <!-- Level curve -->
               <div>
                 <div class="flex items-center justify-between mb-3">
-                  <span class="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <span class="text-xs font-semibold text-ds-soft-white/80 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-ds-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     Level curve
                   </span>
-                  <span class="text-[10px] text-gray-600">AVG {{ avgLevel }}</span>
+                  <span class="text-[10px] text-ds-slate/40">AVG {{ avgLevel }}</span>
                 </div>
                 <div v-if="levelCurve.some(b => b.count > 0)" class="space-y-0">
                   <!-- Numbers above bars -->
@@ -825,9 +969,9 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                       :key="bucket.lv"
                       class="flex-1 flex flex-col items-center justify-end gap-0.5"
                     >
-                      <span v-if="bucket.count > 0" class="text-[10px] text-gray-400">{{ bucket.count }}</span>
+                      <span v-if="bucket.count > 0" class="text-[10px] text-ds-slate/60">{{ bucket.count }}</span>
                       <div
-                        class="w-full rounded-t-sm bg-yellow-500 transition-all"
+                        class="w-full rounded-t-sm bg-ds-gold transition-all"
                         :style="{ height: bucket.count ? `${(bucket.count / maxLevelCount) * 80}px` : '2px', opacity: bucket.count ? 1 : 0.15 }"
                       />
                     </div>
@@ -837,18 +981,18 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                     <div
                       v-for="bucket in levelCurve"
                       :key="bucket.lv"
-                      class="flex-1 text-center text-[10px] text-gray-600 pt-1"
+                      class="flex-1 text-center text-[10px] text-ds-slate/40 pt-1"
                     >{{ bucket.lv }}</div>
                   </div>
                 </div>
-                <p v-else class="text-xs text-gray-600">No level data</p>
+                <p v-else class="text-xs text-ds-slate/40">No level data</p>
               </div>
 
               <!-- Play cost curve (Tamers + Options) -->
               <div v-if="costCurve.length > 0">
                 <div class="flex items-center justify-between mb-3">
-                  <span class="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span class="text-xs font-semibold text-ds-soft-white/80 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-ds-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Cost curve
                   </span>
                 </div>
@@ -858,9 +1002,9 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                     :key="bucket.cost"
                     class="flex-1 flex flex-col items-center justify-end gap-0.5"
                   >
-                    <span v-if="bucket.count > 0" class="text-[10px] text-gray-400">{{ bucket.count }}</span>
+                    <span v-if="bucket.count > 0" class="text-[10px] text-ds-slate/60">{{ bucket.count }}</span>
                     <div
-                      class="w-full rounded-t-sm bg-blue-500 transition-all"
+                      class="w-full rounded-t-sm bg-ds-royal transition-all"
                       :style="{ height: bucket.count ? `${(bucket.count / maxCostCount) * 80}px` : '2px', opacity: bucket.count ? 1 : 0.15 }"
                     />
                   </div>
@@ -869,21 +1013,21 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                   <div
                     v-for="bucket in costCurve"
                     :key="bucket.cost"
-                    class="flex-1 text-center text-[10px] text-gray-600"
+                    class="flex-1 text-center text-[10px] text-ds-slate/40"
                   >{{ bucket.cost }}</div>
                 </div>
               </div>
 
-              <div class="border-t border-gray-800" />
+              <div class="border-t border-ds-neon/20" />
 
               <!-- Color distribution -->
               <div v-if="colorMap.length > 0">
                 <div class="flex items-center justify-between mb-3">
-                  <span class="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M12 2a10 10 0 010 20"/></svg>
+                  <span class="text-xs font-semibold text-ds-soft-white/80 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-ds-neon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M12 2a10 10 0 010 20"/></svg>
                     Colors
                   </span>
-                  <span class="text-[10px] text-gray-600">{{ colorMap.length }} ACTIVE</span>
+                  <span class="text-[10px] text-ds-slate/40">{{ colorMap.length }} ACTIVE</span>
                 </div>
                 <!-- Stacked bar -->
                 <div class="flex h-3 rounded-full overflow-hidden gap-px">
@@ -900,18 +1044,18 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                   <div v-for="item in colorMap" :key="item.color" class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
                       <div class="w-2.5 h-2.5 rounded-full" :class="colorDotClass(item.color)" />
-                      <span class="text-xs text-gray-400">{{ item.color }}</span>
+                      <span class="text-xs text-ds-slate">{{ item.color }}</span>
                     </div>
-                    <span class="text-xs font-mono text-gray-500">{{ item.count }}</span>
+                    <span class="text-xs font-mono text-ds-slate/50">{{ item.count }}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Description / video -->
-            <div v-if="deck.description || deck.videoUrl" class="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
-              <p v-if="deck.description" class="text-sm text-gray-300 leading-relaxed">{{ deck.description }}</p>
-              <div v-if="deck.videoUrl" class="aspect-video rounded-lg overflow-hidden bg-gray-800">
+            <div v-if="deck.description || deck.videoUrl" class="bg-ds-navy border border-ds-neon/20 rounded-xl p-5 space-y-3">
+              <p v-if="deck.description" class="text-sm text-ds-soft-white/80 leading-relaxed">{{ deck.description }}</p>
+              <div v-if="deck.videoUrl" class="aspect-video rounded-lg overflow-hidden bg-ds-midnight">
                 <iframe
                   v-if="deck.videoUrl.includes('youtube') || deck.videoUrl.includes('youtu.be')"
                   :src="deck.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')"
@@ -932,25 +1076,25 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
             <!-- Header row -->
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
-                <h2 class="text-xs font-bold uppercase tracking-widest text-white">Guide</h2>
+                <h2 class="text-xs font-bold uppercase tracking-widest text-ds-soft-white">Guide</h2>
                 <span v-if="guideEditing" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-600/40 uppercase tracking-wider">Editing</span>
               </div>
               <!-- Edit controls -->
               <div v-if="isOwner" class="flex items-center gap-2">
                 <template v-if="guideEditing">
-                  <button @click="cancelEditGuide" class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  <BaseButton variant="secondary" size="sm" @click="cancelEditGuide">
+                    <template #icon><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></template>
                     Cancel
-                  </button>
-                  <button @click="handleSaveGuide" :disabled="guideSaving" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 rounded-lg transition-colors">
+                  </BaseButton>
+                  <button @click="handleSaveGuide" :disabled="guideSaving" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-ds-gold hover:bg-ds-gold/80 disabled:bg-ds-navy disabled:text-ds-slate text-ds-midnight rounded-lg transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     {{ guideSaving ? 'Saving…' : 'Save Guide' }}
                   </button>
                 </template>
-                <button v-else @click="startEditGuide" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-yellow-400 border border-yellow-700 bg-yellow-950/40 hover:bg-yellow-900/50 rounded-lg transition-colors">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <BaseButton v-else variant="accent" size="sm" @click="startEditGuide">
+                  <template #icon><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></template>
                   {{ deck.guide ? 'Edit Guide' : 'Write a guide' }}
-                </button>
+                </BaseButton>
               </div>
             </div>
 
@@ -960,22 +1104,22 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 v-model="guideDraft"
                 rows="14"
                 placeholder="Start writing your guide…"
-                class="w-full bg-gray-900 border border-yellow-600/40 text-gray-200 text-sm rounded-xl px-5 py-4 focus:outline-none focus:border-yellow-500 resize-none leading-relaxed placeholder:text-gray-600"
+                class="w-full bg-ds-navy border border-ds-gold/40 text-ds-soft-white text-sm rounded-xl px-5 py-4 focus:outline-none focus:border-ds-gold resize-none leading-relaxed placeholder:text-ds-slate/40"
               />
             </div>
 
             <!-- Display -->
-            <div v-else-if="deck.guide" class="bg-gray-900 border border-gray-800 rounded-xl px-6 py-5 text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+            <div v-else-if="deck.guide" class="bg-ds-navy border border-ds-neon/20 rounded-xl px-6 py-5 text-ds-soft-white/80 text-sm leading-relaxed whitespace-pre-wrap">
               {{ deck.guide }}
             </div>
 
             <!-- Empty state -->
-            <div v-else class="bg-gray-900 border border-gray-800 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
-              <svg class="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div v-else class="bg-ds-navy border border-ds-neon/20 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
+              <svg class="w-10 h-10 text-ds-slate/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
               </svg>
-              <p class="text-gray-400 font-medium">No guide yet</p>
-              <p class="text-sm text-gray-600">Share how to pilot this deck with the community.</p>
+              <p class="text-ds-slate font-medium">No guide yet</p>
+              <p class="text-sm text-ds-slate/40">Share how to pilot this deck with the community.</p>
             </div>
           </section>
         </div>
@@ -986,8 +1130,8 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 
             <!-- Header -->
             <div class="flex items-center justify-between">
-              <h2 class="text-xs font-bold uppercase tracking-widest text-white">Matchup Guide</h2>
-              <button v-if="isOwner" @click="openAddMatchup" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-yellow-600 hover:bg-yellow-500 text-gray-950 rounded-lg transition-colors">
+              <h2 class="text-xs font-bold uppercase tracking-widest text-ds-soft-white">Matchup Guide</h2>
+              <button v-if="isOwner" @click="openAddMatchup" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-ds-gold hover:bg-ds-gold/80 text-ds-midnight rounded-lg transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 New Matchup
               </button>
@@ -995,7 +1139,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 
             <!-- Loading -->
             <div v-if="matchupsLoading" class="flex justify-center py-10">
-              <div class="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+              <div class="w-8 h-8 border-2 border-ds-gold border-t-transparent rounded-full animate-spin" />
             </div>
 
             <!-- Matchup cards -->
@@ -1003,11 +1147,11 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
               <div
                 v-for="mu in matchups"
                 :key="mu.id"
-                class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden"
+                class="bg-ds-navy border border-ds-neon/20 rounded-xl overflow-hidden"
               >
                 <!-- Card header (always visible) -->
                 <button
-                  class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-800/60 transition-colors text-left"
+                  class="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-ds-midnight/60 transition-colors text-left"
                   @click="expandedMatchup = expandedMatchup === mu.id ? null : mu.id"
                 >
                   <!-- Color dots -->
@@ -1018,13 +1162,13 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                       class="w-3 h-3 rounded-full border border-black/30"
                       :class="COLOR_DOT[color] ?? 'bg-gray-500'"
                     />
-                    <span v-if="mu.opponentColors.length === 0" class="w-3 h-3 rounded-full bg-gray-700" />
+                    <span v-if="mu.opponentColors.length === 0" class="w-3 h-3 rounded-full bg-ds-navy" />
                   </div>
 
                   <!-- Title + archetype -->
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-white truncate">{{ matchupDisplayTitle(mu) }}</p>
-                    <p v-if="mu.opponentDeckName && mu.title" class="text-xs text-gray-500 truncate">{{ mu.opponentDeckName }}</p>
+                    <p class="text-sm font-semibold text-ds-soft-white truncate">{{ matchupDisplayTitle(mu) }}</p>
+                    <p v-if="mu.opponentDeckName && mu.title" class="text-xs text-ds-slate/50 truncate">{{ mu.opponentDeckName }}</p>
                   </div>
 
                   <!-- Difficulty badge -->
@@ -1041,33 +1185,33 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 
                   <!-- Chevron -->
                   <svg
-                    class="w-4 h-4 text-gray-600 transition-transform duration-200 shrink-0"
+                    class="w-4 h-4 text-ds-slate/40 transition-transform duration-200 shrink-0"
                     :class="expandedMatchup === mu.id ? 'rotate-180' : ''"
                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
                   ><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
 
                 <!-- Expanded notes -->
-                <div v-if="expandedMatchup === mu.id" class="border-t border-gray-800 px-4 pb-4 pt-3 space-y-4">
+                <div v-if="expandedMatchup === mu.id" class="border-t border-ds-neon/20 px-4 pb-4 pt-3 space-y-4">
                   <!-- Going First / Second tabs -->
-                  <div class="flex items-center gap-0 border-b border-gray-800 -mx-4 px-4">
-                    <span class="text-xs font-semibold py-2 pr-4 border-b-2 border-yellow-400 text-yellow-400">Going First</span>
-                    <span class="text-xs text-gray-600 py-2 px-4 border-b-2 border-transparent">Going Second</span>
+                  <div class="flex items-center gap-0 border-b border-ds-neon/20 -mx-4 px-4">
+                    <span class="text-xs font-semibold py-2 pr-4 border-b-2 border-ds-gold text-ds-gold">Going First</span>
+                    <span class="text-xs text-ds-slate/40 py-2 px-4 border-b-2 border-transparent">Going Second</span>
                   </div>
                   <div class="grid grid-cols-2 gap-4">
                     <div>
-                      <p class="text-[10px] uppercase tracking-widest text-yellow-500 mb-2 font-semibold">Going First</p>
-                      <p v-if="mu.notesGoingFirst" class="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{{ mu.notesGoingFirst }}</p>
-                      <p v-else class="text-sm text-gray-600 italic">No notes yet.</p>
+                      <p class="text-[10px] uppercase tracking-widest text-ds-gold mb-2 font-semibold">Going First</p>
+                      <p v-if="mu.notesGoingFirst" class="text-sm text-ds-soft-white/80 whitespace-pre-wrap leading-relaxed">{{ mu.notesGoingFirst }}</p>
+                      <p v-else class="text-sm text-ds-slate/40 italic">No notes yet.</p>
                     </div>
                     <div>
-                      <p class="text-[10px] uppercase tracking-widest text-blue-400 mb-2 font-semibold">Going Second</p>
-                      <p v-if="mu.notesGoingSecond" class="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{{ mu.notesGoingSecond }}</p>
-                      <p v-else class="text-sm text-gray-600 italic">No notes yet.</p>
+                      <p class="text-[10px] uppercase tracking-widest text-ds-cyan mb-2 font-semibold">Going Second</p>
+                      <p v-if="mu.notesGoingSecond" class="text-sm text-ds-soft-white/80 whitespace-pre-wrap leading-relaxed">{{ mu.notesGoingSecond }}</p>
+                      <p v-else class="text-sm text-ds-slate/40 italic">No notes yet.</p>
                     </div>
                   </div>
                   <div v-if="isOwner" class="flex justify-end pt-1">
-                    <button @click="handleDeleteMatchup(mu.id)" class="text-xs text-gray-600 hover:text-red-400 transition-colors flex items-center gap-1">
+                    <button @click="handleDeleteMatchup(mu.id)" class="text-xs text-ds-slate/40 hover:text-red-400 transition-colors flex items-center gap-1">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       Delete
                     </button>
@@ -1077,12 +1221,12 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
             </div>
 
             <!-- Empty state -->
-            <div v-else class="bg-gray-900 border border-gray-800 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
-              <svg class="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div v-else class="bg-ds-navy border border-ds-neon/20 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
+              <svg class="w-10 h-10 text-ds-slate/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
               </svg>
-              <p class="text-gray-400 font-medium">No matchup notes yet</p>
-              <p class="text-sm text-gray-600">Document your experience against different deck colors to help readers.</p>
+              <p class="text-ds-slate font-medium">No matchup notes yet</p>
+              <p class="text-sm text-ds-slate/40">Document your experience against different deck colors to help readers.</p>
             </div>
           </section>
         </div>
@@ -1093,30 +1237,30 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 
             <!-- Stats bar -->
             <div v-if="matches.length > 0" class="grid grid-cols-4 gap-3">
-              <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-                <p class="text-2xl font-bold text-white">{{ matchStats.total }}</p>
-                <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Games</p>
+              <div class="bg-ds-navy border border-ds-neon/20 rounded-xl p-4 text-center">
+                <p class="text-2xl font-bold text-ds-soft-white">{{ matchStats.total }}</p>
+                <p class="text-xs text-ds-slate/50 mt-1 uppercase tracking-widest">Games</p>
               </div>
-              <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+              <div class="bg-ds-navy border border-ds-neon/20 rounded-xl p-4 text-center">
                 <p class="text-2xl font-bold text-green-400">{{ matchStats.wins }}</p>
-                <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Wins</p>
+                <p class="text-xs text-ds-slate/50 mt-1 uppercase tracking-widest">Wins</p>
               </div>
-              <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+              <div class="bg-ds-navy border border-ds-neon/20 rounded-xl p-4 text-center">
                 <p class="text-2xl font-bold text-red-400">{{ matchStats.losses }}</p>
-                <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Losses</p>
+                <p class="text-xs text-ds-slate/50 mt-1 uppercase tracking-widest">Losses</p>
               </div>
-              <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-                <p class="text-2xl font-bold" :class="matchStats.winRate >= 50 ? 'text-yellow-400' : 'text-gray-400'">
+              <div class="bg-ds-navy border border-ds-neon/20 rounded-xl p-4 text-center">
+                <p class="text-2xl font-bold" :class="matchStats.winRate >= 50 ? 'text-ds-gold' : 'text-ds-slate'">
                   {{ matchStats.winRate }}%
                 </p>
-                <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest">Win Rate</p>
+                <p class="text-xs text-ds-slate/50 mt-1 uppercase tracking-widest">Win Rate</p>
               </div>
             </div>
 
             <!-- Header -->
             <div class="flex items-center justify-between">
-              <h2 class="text-xs font-bold uppercase tracking-widest text-white">Match History</h2>
-              <button v-if="isOwner" @click="openAddMatch" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-yellow-600 hover:bg-yellow-500 text-gray-950 rounded-lg transition-colors">
+              <h2 class="text-xs font-bold uppercase tracking-widest text-ds-soft-white">Match History</h2>
+              <button v-if="isOwner" @click="openAddMatch" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold bg-ds-gold hover:bg-ds-gold/80 text-ds-midnight rounded-lg transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Record match
               </button>
@@ -1124,7 +1268,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 
             <!-- Loading -->
             <div v-if="matchesLoading" class="flex justify-center py-10">
-              <div class="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+              <div class="w-8 h-8 border-2 border-ds-gold border-t-transparent rounded-full animate-spin" />
             </div>
 
             <!-- Match list -->
@@ -1132,7 +1276,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
               <div
                 v-for="match in matches"
                 :key="match.id"
-                class="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex items-center gap-4"
+                class="bg-ds-navy border border-ds-neon/20 rounded-xl px-4 py-3 flex items-center gap-4"
               >
                 <!-- Result badge -->
                 <span
@@ -1140,7 +1284,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                   :class="{
                     'bg-green-500/20 text-green-400 border border-green-600/50': match.result === 'win',
                     'bg-red-500/20 text-red-400 border border-red-600/50': match.result === 'loss',
-                    'bg-gray-700 text-gray-400 border border-gray-600': match.result === 'draw',
+                    'bg-ds-midnight text-ds-slate/60 border border-ds-neon/30': match.result === 'draw',
                   }"
                 >{{ match.result === 'win' ? 'WIN' : match.result === 'loss' ? 'LOSS' : 'DRAW' }}</span>
 
@@ -1153,21 +1297,21 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                       class="w-3 h-3 rounded-full border border-black/30"
                       :class="COLOR_DOT[color] ?? 'bg-gray-500'"
                     />
-                    <span v-if="!match.opponentColors?.length" class="w-3 h-3 rounded-full bg-gray-600" />
+                    <span v-if="!match.opponentColors?.length" class="w-3 h-3 rounded-full bg-ds-navy" />
                   </div>
                   <div class="min-w-0">
-                    <p class="text-sm text-white font-medium truncate">
+                    <p class="text-sm text-ds-soft-white font-medium truncate">
                       {{ (match.opponentColors ?? []).join(' / ') || 'Unknown' }}
-                      <span v-if="match.opponentDeckName" class="text-gray-400 font-normal"> · {{ match.opponentDeckName }}</span>
+                      <span v-if="match.opponentDeckName" class="text-ds-slate font-normal"> · {{ match.opponentDeckName }}</span>
                     </p>
-                    <p v-if="match.opponentName" class="text-xs text-gray-500 truncate">vs {{ match.opponentName }}</p>
+                    <p v-if="match.opponentName" class="text-xs text-ds-slate/50 truncate">vs {{ match.opponentName }}</p>
                   </div>
                 </div>
 
                 <!-- Score -->
-                <div v-if="match.result !== 'draw'" class="shrink-0 text-sm font-mono font-semibold text-gray-300">
+                <div v-if="match.result !== 'draw'" class="shrink-0 text-sm font-mono font-semibold text-ds-soft-white/80">
                   <span class="text-green-400">{{ match.wonGames }}</span>
-                  <span class="text-gray-600"> — </span>
+                  <span class="text-ds-slate/30"> — </span>
                   <span class="text-red-400">{{ match.lostGames }}</span>
                 </div>
 
@@ -1177,19 +1321,19 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 </svg>
 
                 <!-- Delete (owner only) -->
-                <button v-if="isOwner" @click="handleDeleteMatch(match.id)" class="shrink-0 text-gray-700 hover:text-red-400 transition-colors" title="Delete match">
+                <button v-if="isOwner" @click="handleDeleteMatch(match.id)" class="shrink-0 text-ds-slate/30 hover:text-red-400 transition-colors" title="Delete match">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
               </div>
             </div>
 
             <!-- Empty state -->
-            <div v-else class="bg-gray-900 border border-gray-800 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
-              <svg class="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div v-else class="bg-ds-navy border border-ds-neon/20 rounded-xl p-10 flex flex-col items-center gap-4 text-center">
+              <svg class="w-10 h-10 text-ds-slate/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
-              <p class="text-gray-400 font-medium">No matches recorded yet</p>
-              <p class="text-sm text-gray-600">Track your game results to see your win rate and performance.</p>
+              <p class="text-ds-slate font-medium">No matches recorded yet</p>
+              <p class="text-sm text-ds-slate/40">Track your game results to see your win rate and performance.</p>
             </div>
           </section>
         </div>
@@ -1229,21 +1373,21 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
         @click.self="showAddMatchModal = false"
       >
-        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5">
+        <div class="bg-ds-navy border border-ds-neon/30 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5">
 
           <!-- Header -->
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.09 6.41H21l-5.47 3.97 2.09 6.41L12 14.82l-5.62 4.07 2.09-6.41L3 8.41h6.91z"/></svg>
-              <h2 class="text-white font-semibold text-base">Add Match Result</h2>
+              <svg class="w-5 h-5 text-ds-gold" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.09 6.41H21l-5.47 3.97 2.09 6.41L12 14.82l-5.62 4.07 2.09-6.41L3 8.41h6.91z"/></svg>
+              <h2 class="text-ds-soft-white font-semibold text-base">Add Match Result</h2>
             </div>
-            <button @click="showAddMatchModal = false" class="text-gray-500 hover:text-white text-xl leading-none">&times;</button>
+            <button @click="showAddMatchModal = false" class="text-ds-slate hover:text-ds-soft-white text-xl leading-none">&times;</button>
           </div>
-          <p class="text-xs text-gray-500 -mt-3">Record the outcome of your match to track your performance.</p>
+          <p class="text-xs text-ds-slate/50 -mt-3">Record the outcome of your match to track your performance.</p>
 
           <!-- Opponent color -->
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-medium text-gray-300">Opponent Deck Colors <span class="text-yellow-400">*</span> <span class="text-gray-600">(up to 3)</span></label>
+            <label class="text-xs font-medium text-ds-soft-white/80">Opponent Deck Colors <span class="text-ds-gold">*</span> <span class="text-ds-slate/40">(up to 3)</span></label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="color in DIGIMON_COLORS"
@@ -1251,8 +1395,8 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 @click="toggleMatchColor(color)"
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors"
                 :class="matchOpponentColors.includes(color)
-                  ? 'border-yellow-500 bg-yellow-500/10 text-white'
-                  : 'border-gray-700 text-gray-400 hover:border-gray-500'"
+                  ? 'border-ds-gold bg-ds-gold/10 text-ds-soft-white'
+                  : 'border-ds-neon/30 text-ds-slate hover:border-ds-neon/60'"
               >
                 <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="COLOR_DOT[color]" />
                 {{ color }}
@@ -1262,54 +1406,54 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 
           <!-- Deck name (optional) -->
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-300">Opponent Deck Archetype <span class="text-gray-600">(optional)</span></label>
-            <input v-model="matchOpponentDeckName" type="text" placeholder="e.g. Agumon, BanchoLilimon…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none" />
+            <label class="text-xs font-medium text-ds-soft-white/80">Opponent Deck Archetype <span class="text-ds-slate/40">(optional)</span></label>
+            <input v-model="matchOpponentDeckName" type="text" placeholder="e.g. Agumon, BanchoLilimon…" class="bg-ds-midnight text-ds-soft-white text-sm rounded-lg px-3 py-2 border border-ds-neon/30 focus:border-ds-cyan outline-none" />
           </div>
 
           <!-- Opponent name (optional) -->
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-300">
+            <label class="text-xs font-medium text-ds-soft-white/80">
               <span class="inline-flex items-center gap-1">
-                <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                Opponent Name <span class="text-gray-600">(optional)</span>
+                <svg class="w-3.5 h-3.5 text-ds-slate/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                Opponent Name <span class="text-ds-slate/40">(optional)</span>
               </span>
             </label>
-            <input v-model="matchOpponentName" type="text" placeholder="Enter username…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none" />
+            <input v-model="matchOpponentName" type="text" placeholder="Enter username…" class="bg-ds-midnight text-ds-soft-white text-sm rounded-lg px-3 py-2 border border-ds-neon/30 focus:border-ds-cyan outline-none" />
           </div>
 
           <!-- Match result -->
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-medium text-gray-300">Match Result <span class="text-yellow-400">*</span></label>
-            <div class="bg-gray-800 border border-gray-700 rounded-xl p-4">
+            <label class="text-xs font-medium text-ds-soft-white/80">Match Result <span class="text-ds-gold">*</span></label>
+            <div class="bg-ds-midnight border border-ds-neon/20 rounded-xl p-4">
               <div class="flex items-center justify-center gap-8 mb-3">
                 <!-- WON counter -->
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-xs font-semibold text-green-400 uppercase tracking-widest">WON</span>
                   <div class="flex items-center gap-3">
-                    <button @click="matchWonGames = Math.max(0, matchWonGames - 1)" :disabled="matchIsDraw" class="text-gray-500 hover:text-white disabled:opacity-30 text-lg leading-none">−</button>
+                    <button @click="matchWonGames = Math.max(0, matchWonGames - 1)" :disabled="matchIsDraw" class="text-ds-slate hover:text-ds-soft-white disabled:opacity-30 text-lg leading-none">−</button>
                     <span class="text-3xl font-bold text-green-400 w-8 text-center tabular-nums">{{ matchIsDraw ? '—' : matchWonGames }}</span>
-                    <button @click="matchWonGames++" :disabled="matchIsDraw" class="text-gray-500 hover:text-white disabled:opacity-30 text-lg leading-none">+</button>
+                    <button @click="matchWonGames++" :disabled="matchIsDraw" class="text-ds-slate hover:text-ds-soft-white disabled:opacity-30 text-lg leading-none">+</button>
                   </div>
                 </div>
-                <span class="text-gray-600 text-xl font-light">—</span>
+                <span class="text-ds-slate/30 text-xl font-light">—</span>
                 <!-- LOST counter -->
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-xs font-semibold text-red-400 uppercase tracking-widest">LOST</span>
                   <div class="flex items-center gap-3">
-                    <button @click="matchLostGames = Math.max(0, matchLostGames - 1)" :disabled="matchIsDraw" class="text-gray-500 hover:text-white disabled:opacity-30 text-lg leading-none">−</button>
+                    <button @click="matchLostGames = Math.max(0, matchLostGames - 1)" :disabled="matchIsDraw" class="text-ds-slate hover:text-ds-soft-white disabled:opacity-30 text-lg leading-none">−</button>
                     <span class="text-3xl font-bold text-red-400 w-8 text-center tabular-nums">{{ matchIsDraw ? '—' : matchLostGames }}</span>
-                    <button @click="matchLostGames++" :disabled="matchIsDraw" class="text-gray-500 hover:text-white disabled:opacity-30 text-lg leading-none">+</button>
+                    <button @click="matchLostGames++" :disabled="matchIsDraw" class="text-ds-slate hover:text-ds-soft-white disabled:opacity-30 text-lg leading-none">+</button>
                   </div>
                 </div>
               </div>
-              <p v-if="!matchIsDraw" class="text-center text-xs text-gray-600">Enter score</p>
+              <p v-if="!matchIsDraw" class="text-center text-xs text-ds-slate/40">Enter score</p>
               <!-- Intentional Draw -->
               <button
                 @click="matchIsDraw = !matchIsDraw"
                 class="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg border text-xs font-medium transition-colors"
                 :class="matchIsDraw
-                  ? 'border-yellow-600/60 bg-yellow-500/10 text-yellow-400'
-                  : 'border-gray-700 text-gray-500 hover:border-gray-500 hover:text-gray-300'"
+                  ? 'border-ds-gold/60 bg-ds-gold/10 text-ds-gold'
+                  : 'border-ds-neon/30 text-ds-slate hover:border-ds-neon/50 hover:text-ds-soft-white'"
               >
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h8"/></svg>
                 Intentional Draw
@@ -1318,25 +1462,25 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
           </div>
 
           <!-- Won dice roll -->
-          <label class="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 cursor-pointer hover:border-gray-500 transition-colors">
+          <label class="flex items-center gap-3 bg-ds-midnight border border-ds-neon/20 rounded-xl px-4 py-3 cursor-pointer hover:border-ds-neon/40 transition-colors">
             <input v-model="matchWonDice" type="checkbox" class="w-4 h-4 accent-yellow-500" />
-            <div class="flex items-center gap-2 text-sm text-gray-300">
-              <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5zm2 4a1 1 0 110 2 1 1 0 010-2zm10 0a1 1 0 110 2 1 1 0 010-2zM12 11a1 1 0 110 2 1 1 0 010-2zm-5 4a1 1 0 110 2 1 1 0 010-2zm10 0a1 1 0 110 2 1 1 0 010-2z"/></svg>
+            <div class="flex items-center gap-2 text-sm text-ds-soft-white/80">
+              <svg class="w-4 h-4 text-ds-gold" fill="currentColor" viewBox="0 0 24 24"><path d="M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5zm2 4a1 1 0 110 2 1 1 0 010-2zm10 0a1 1 0 110 2 1 1 0 010-2zM12 11a1 1 0 110 2 1 1 0 010-2zm-5 4a1 1 0 110 2 1 1 0 010-2zm10 0a1 1 0 110 2 1 1 0 010-2z"/></svg>
               Won the dice roll
             </div>
           </label>
 
           <!-- Notes -->
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-300">Notes <span class="text-gray-600">(optional)</span></label>
-            <textarea v-model="matchNotes" rows="2" placeholder="Key plays, observations…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none resize-none" />
+            <label class="text-xs font-medium text-ds-soft-white/80">Notes <span class="text-ds-slate/40">(optional)</span></label>
+            <textarea v-model="matchNotes" rows="2" placeholder="Key plays, observations…" class="bg-ds-midnight text-ds-soft-white text-sm rounded-lg px-3 py-2 border border-ds-neon/30 focus:border-ds-cyan outline-none resize-none" />
           </div>
 
           <p v-if="addMatchError" class="text-xs text-red-400">{{ addMatchError }}</p>
 
           <div class="flex gap-2 justify-end pt-1">
-            <button @click="showAddMatchModal = false" class="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-4 py-2 transition-colors">Cancel</button>
-            <button @click="handleAddMatch" :disabled="addMatchSaving" class="text-xs font-semibold bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 rounded-lg px-5 py-2 transition-colors">
+            <BaseButton variant="secondary" size="sm" @click="showAddMatchModal = false">Cancel</BaseButton>
+            <button @click="handleAddMatch" :disabled="addMatchSaving" class="text-xs font-semibold bg-ds-gold hover:bg-ds-gold/80 disabled:bg-ds-navy disabled:text-ds-slate text-ds-midnight rounded-lg px-5 py-2 transition-colors">
               {{ addMatchSaving ? 'Saving…' : 'Add Match' }}
             </button>
           </div>
@@ -1351,31 +1495,31 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
         @click.self="showAddMatchupModal = false"
       >
-        <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+        <div class="bg-ds-navy border border-ds-neon/30 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
 
           <!-- Header -->
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-ds-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
               </svg>
-              <h2 class="text-white font-semibold text-base">New Matchup</h2>
+              <h2 class="text-ds-soft-white font-semibold text-base">New Matchup</h2>
             </div>
-            <button @click="showAddMatchupModal = false" class="text-gray-500 hover:text-white text-xl leading-none">&times;</button>
+            <button @click="showAddMatchupModal = false" class="text-ds-slate hover:text-ds-soft-white text-xl leading-none">&times;</button>
           </div>
-          <p class="text-xs text-gray-500 -mt-3">Document your strategy against a specific deck or color combination.</p>
+          <p class="text-xs text-ds-slate/50 -mt-3">Document your strategy against a specific deck or color combination.</p>
 
           <!-- Custom Title (optional) -->
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-300">Custom Title <span class="text-gray-600">(optional)</span></label>
-            <input v-model="muTitle" type="text" maxlength="60" placeholder="e.g. Agumon Bond, Lilithmon Loop…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none" />
+            <label class="text-xs font-medium text-ds-soft-white/80">Custom Title <span class="text-ds-slate/40">(optional)</span></label>
+            <input v-model="muTitle" type="text" maxlength="60" placeholder="e.g. Agumon Bond, Lilithmon Loop…" class="bg-ds-midnight text-ds-soft-white text-sm rounded-lg px-3 py-2 border border-ds-neon/30 focus:border-ds-cyan outline-none" />
           </div>
 
           <!-- Opponent Colors (up to 3) -->
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-medium text-gray-300">
+            <label class="text-xs font-medium text-ds-soft-white/80">
               Opponent Colors
-              <span class="text-gray-600">(up to 3)</span>
+              <span class="text-ds-slate/40">(up to 3)</span>
             </label>
             <div class="flex flex-wrap gap-2">
               <button
@@ -1384,8 +1528,8 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 @click="toggleMatchupColor(color)"
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors"
                 :class="muOpponentColors.includes(color)
-                  ? 'border-yellow-500 bg-yellow-500/10 text-white'
-                  : 'border-gray-700 text-gray-400 hover:border-gray-500'"
+                  ? 'border-ds-gold bg-ds-gold/10 text-ds-soft-white'
+                  : 'border-ds-neon/30 text-ds-slate hover:border-ds-neon/60'"
               >
                 <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="COLOR_DOT[color]" />
                 {{ color }}
@@ -1395,13 +1539,13 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 
           <!-- Opponent Deck Archetype (optional) -->
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-300">Opponent Deck Archetype <span class="text-gray-600">(optional)</span></label>
-            <input v-model="muOpponentDeckName" type="text" placeholder="e.g. Agumon Bond, RustTyranomon…" class="bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none" />
+            <label class="text-xs font-medium text-ds-soft-white/80">Opponent Deck Archetype <span class="text-ds-slate/40">(optional)</span></label>
+            <input v-model="muOpponentDeckName" type="text" placeholder="e.g. Agumon Bond, RustTyranomon…" class="bg-ds-midnight text-ds-soft-white text-sm rounded-lg px-3 py-2 border border-ds-neon/30 focus:border-ds-cyan outline-none" />
           </div>
 
           <!-- Difficulty -->
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-medium text-gray-300">Matchup Difficulty</label>
+            <label class="text-xs font-medium text-ds-soft-white/80">Matchup Difficulty</label>
             <div class="grid grid-cols-3 gap-2">
               <button
                 v-for="opt in DIFFICULTY_OPTIONS"
@@ -1410,7 +1554,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 class="flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-colors"
                 :class="muDifficulty === opt.key
                   ? DIFFICULTY_STYLE[opt.key]
-                  : 'border-gray-700 text-gray-500 hover:border-gray-500'"
+                  : 'border-ds-neon/30 text-ds-slate hover:border-ds-neon/60'"
               >
                 <span v-if="opt.key === 'favored'" class="text-base">▲</span>
                 <span v-else-if="opt.key === 'even'" class="text-base">●</span>
@@ -1422,20 +1566,20 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 
           <!-- Strategy Notes tabs -->
           <div class="flex flex-col gap-2">
-            <label class="text-xs font-medium text-gray-300">Strategy Notes</label>
+            <label class="text-xs font-medium text-ds-soft-white/80">Strategy Notes</label>
             <!-- Tab switcher -->
-            <div class="flex border-b border-gray-800 -mx-0 gap-0">
+            <div class="flex border-b border-ds-neon/20 -mx-0 gap-0">
               <button
                 @click="muActiveNoteTab = 'first'"
                 class="px-4 py-2 text-xs font-semibold border-b-2 transition-colors"
-                :class="muActiveNoteTab === 'first' ? 'border-yellow-400 text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-300'"
+                :class="muActiveNoteTab === 'first' ? 'border-ds-gold text-ds-gold' : 'border-transparent text-ds-slate hover:text-ds-soft-white'"
               >
                 Going First
               </button>
               <button
                 @click="muActiveNoteTab = 'second'"
                 class="px-4 py-2 text-xs font-semibold border-b-2 transition-colors"
-                :class="muActiveNoteTab === 'second' ? 'border-blue-400 text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-300'"
+                :class="muActiveNoteTab === 'second' ? 'border-ds-cyan text-ds-cyan' : 'border-transparent text-ds-slate hover:text-ds-soft-white'"
               >
                 Going Second
               </button>
@@ -1447,7 +1591,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 rows="4"
                 maxlength="250"
                 placeholder="Strategy when going first…"
-                class="w-full bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-gray-700 focus:border-yellow-500 outline-none resize-none"
+                class="w-full bg-ds-midnight text-ds-soft-white text-sm rounded-lg px-3 py-2 border border-ds-neon/30 focus:border-ds-gold outline-none resize-none"
               />
               <textarea
                 v-else
@@ -1455,9 +1599,9 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 rows="4"
                 maxlength="250"
                 placeholder="Strategy when going second…"
-                class="w-full bg-gray-800 text-gray-200 text-sm rounded-lg px-3 py-2 border border-blue-800/50 focus:border-blue-400 outline-none resize-none"
+                class="w-full bg-ds-midnight text-ds-soft-white text-sm rounded-lg px-3 py-2 border border-ds-cyan/30 focus:border-ds-cyan outline-none resize-none"
               />
-              <span class="absolute bottom-2 right-3 text-[10px] text-gray-600">
+              <span class="absolute bottom-2 right-3 text-[10px] text-ds-slate/40">
                 {{ muActiveNoteTab === 'first' ? muNotesFirst.length : muNotesSecond.length }}/250
               </span>
             </div>
@@ -1466,8 +1610,8 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
           <p v-if="addMatchupError" class="text-xs text-red-400">{{ addMatchupError }}</p>
 
           <div class="flex gap-2 justify-end pt-1">
-            <button @click="showAddMatchupModal = false" class="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-4 py-2 transition-colors">Cancel</button>
-            <button @click="handleAddMatchup" :disabled="addMatchupSaving" class="text-xs font-semibold bg-yellow-600 hover:bg-yellow-500 disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 rounded-lg px-5 py-2 transition-colors">
+            <BaseButton variant="secondary" size="sm" @click="showAddMatchupModal = false">Cancel</BaseButton>
+            <button @click="handleAddMatchup" :disabled="addMatchupSaving" class="text-xs font-semibold bg-ds-gold hover:bg-ds-gold/80 disabled:bg-ds-navy disabled:text-ds-slate text-ds-midnight rounded-lg px-5 py-2 transition-colors">
               {{ addMatchupSaving ? 'Saving…' : 'Save Matchup' }}
             </button>
           </div>
