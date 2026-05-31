@@ -626,18 +626,18 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
 
     <template v-else-if="deck">
       <!-- ── Hero Header ───────────────────────────────────────────────────── -->
-      <div class="border-b border-ds-neon/20 bg-ds-navy/60 px-6 py-5">
+      <div class="border-b border-ds-neon/20 bg-ds-navy/60 px-4 sm:px-6 py-4 sm:py-5">
         <div class="max-w-[1400px] mx-auto">
           <!-- Top row -->
           <div class="flex items-start justify-between gap-4 flex-wrap">
             <div class="flex items-center gap-3 flex-wrap">
-              <h1 class="text-3xl font-bold text-ds-soft-white">{{ deck.name }}</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-ds-soft-white">{{ deck.name }}</h1>
               <span class="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider" :class="statusClass">
                 {{ statusLabel }}
               </span>
             </div>
             <!-- Right actions -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <button
                 v-if="isOwner"
                 @click="editDeck"
@@ -781,30 +781,32 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
           </div>
 
           <!-- Tabs -->
-          <div class="flex items-center gap-1 mt-5 border-b border-ds-neon/20 -mb-px">
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              @click="activeTab = tab.key"
-              class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-              :class="activeTab === tab.key
-                ? 'text-ds-gold border-ds-gold'
-                : 'text-ds-slate border-transparent hover:text-ds-soft-white'"
-            >
-              {{ tab.label }}
-              <span v-if="tab.key === 'deck'" class="ml-1 text-xs text-ds-slate/40">
-                {{ totalMainCount + totalEggCount }}
-              </span>
-            </button>
+          <div class="overflow-x-auto -mx-4 sm:mx-0">
+            <div class="flex items-center gap-1 mt-5 border-b border-ds-neon/20 -mb-px min-w-max sm:min-w-0 px-4 sm:px-0">
+              <button
+                v-for="tab in tabs"
+                :key="tab.key"
+                @click="activeTab = tab.key"
+                class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors"
+                :class="activeTab === tab.key
+                  ? 'text-ds-gold border-ds-gold'
+                  : 'text-ds-slate border-transparent hover:text-ds-soft-white'"
+              >
+                {{ tab.label }}
+                <span v-if="tab.key === 'deck'" class="ml-1 text-xs text-ds-slate/40">
+                  {{ totalMainCount + totalEggCount }}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- ── Content ───────────────────────────────────────────────────────── -->
-      <div class="max-w-[1400px] mx-auto px-6 py-6">
+      <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 sm:py-6">
 
         <!-- ── DECK TAB ─────────────────────────────────────────────────────── -->
-        <div v-if="activeTab === 'deck'" class="flex gap-6">
+        <div v-if="activeTab === 'deck'" class="flex flex-col lg:flex-row gap-6">
 
           <!-- Left: card sections -->
           <div class="flex-1 min-w-0 space-y-8">
@@ -839,7 +841,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                   @click="openCard(item.card)"
                 >
                   <div
-                    class="w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
+                    class="w-20 sm:w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
                     :class="cardBorder(item.card.color)"
                   >
                     <div class="aspect-[2/3] bg-ds-midnight">
@@ -881,7 +883,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                   @click="openCard(item.card)"
                 >
                   <div
-                    class="w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
+                    class="w-20 sm:w-28 rounded-lg overflow-hidden border-2 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-black/60"
                     :class="cardBorder(item.card.color)"
                   >
                     <div class="aspect-[2/3] bg-ds-midnight">
@@ -928,7 +930,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
           </div>
 
           <!-- Right: stats panel -->
-          <div class="w-96 shrink-0">
+          <div class="w-full lg:w-96 shrink-0">
             <div class="sticky top-20 space-y-5 max-h-[calc(100vh-6rem)] overflow-y-auto pr-1">
             <div class="bg-ds-navy border border-ds-neon/20 rounded-xl p-6 space-y-6">
 

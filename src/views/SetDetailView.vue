@@ -58,7 +58,7 @@ function onCardClick(card: DigimonCard) {
 </script>
 
 <template>
-  <div class="max-w-screen-2xl mx-auto px-6 py-8">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
     <!-- Back + header -->
     <div class="mb-6">
@@ -74,7 +74,7 @@ function onCardClick(card: DigimonCard) {
 
       <template v-if="set">
         <div class="flex items-center gap-3 flex-wrap">
-          <h1 class="text-3xl font-bold text-ds-soft-white">{{ set.name }}</h1>
+          <h1 class="text-2xl sm:text-3xl font-bold text-ds-soft-white">{{ set.name }}</h1>
           <span class="text-lg font-mono text-ds-slate">{{ set.code }}</span>
           <span
             class="text-xs font-bold px-2 py-1 rounded leading-none"

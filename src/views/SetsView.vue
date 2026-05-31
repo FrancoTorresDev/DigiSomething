@@ -30,7 +30,7 @@ function openSet(set: DigimonSet) {
 </script>
 
 <template>
-  <div class="max-w-screen-xl mx-auto px-6 py-10">
+  <div class="max-w-screen-xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
 
     <!-- Header -->
     <div class="mb-8">
@@ -39,34 +39,38 @@ function openSet(set: DigimonSet) {
     </div>
 
     <!-- Controls -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8">
-      <!-- Search -->
-      <div class="flex items-center gap-2 bg-ds-navy border border-ds-neon/20 rounded-lg px-3 py-2 w-full sm:w-72 focus-within:border-ds-cyan transition-colors">
-        <svg class="w-4 h-4 text-ds-slate shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Search sets..."
-          class="flex-1 bg-transparent text-sm text-ds-soft-white placeholder-ds-slate/60 outline-none"
-        />
+    <div class="flex flex-col gap-3 mb-8">
+      <!-- Row 1: search + count -->
+      <div class="flex items-center gap-3">
+        <!-- Search -->
+        <div class="flex items-center gap-2 bg-ds-navy border border-ds-neon/20 rounded-lg px-3 py-2 flex-1 focus-within:border-ds-cyan transition-colors">
+          <svg class="w-4 h-4 text-ds-slate shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Search sets..."
+            class="flex-1 bg-transparent text-sm text-ds-soft-white placeholder-ds-slate/60 outline-none"
+          />
+        </div>
+        <span class="text-sm text-ds-slate/60 shrink-0">{{ filteredSets.length }} sets</span>
       </div>
 
-      <!-- Type filter tabs -->
-      <div class="flex items-center gap-1 bg-ds-navy border border-ds-neon/20 rounded-lg p-1">
-        <button
-          v-for="t in TYPES"
-          :key="t"
-          @click="activeType = t"
-          class="px-3 py-1.5 rounded-md text-sm font-display font-medium transition-colors"
-          :class="activeType === t
-            ? 'bg-ds-royal/30 text-ds-cyan border border-ds-neon/40'
-            : 'text-ds-slate hover:text-ds-soft-white'"
-        >{{ t }}</button>
+      <!-- Row 2: Type filter tabs (scrollable on mobile) -->
+      <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+        <div class="flex items-center gap-1 bg-ds-navy border border-ds-neon/20 rounded-lg p-1 w-max sm:w-auto">
+          <button
+            v-for="t in TYPES"
+            :key="t"
+            @click="activeType = t"
+            class="px-3 py-1.5 rounded-md text-sm font-display font-medium transition-colors whitespace-nowrap"
+            :class="activeType === t
+              ? 'bg-ds-royal/30 text-ds-cyan border border-ds-neon/40'
+              : 'text-ds-slate hover:text-ds-soft-white'"
+          >{{ t }}</button>
+        </div>
       </div>
-
-      <span class="text-sm text-ds-slate/60 ml-auto">{{ filteredSets.length }} sets</span>
     </div>
 
     <!-- Sets grid -->

@@ -1,13 +1,25 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useDeckStore } from '@/stores/deckStore'
 import DeckCard from '@/components/deck/DeckCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import { useAuthStore } from '@/stores/authStore'
 import type { Deck } from '@/models/Deck'
 
 const deckStore = useDeckStore()
-onMounted(() => deckStore.loadUserDecks())
+const authStore = useAuthStore()
+
+onMounted(async () => {
+  await deckStore.loadUserDecks()
+})
+
+watch(
+  () => authStore.user?.uid,
+  async () => {
+    await deckStore.loadUserDecks()
+  }
+)
 
 const openMenuId = ref<string | null>(null)
 function toggleMenu(id: string) { openMenuId.value = openMenuId.value === id ? null : id }
@@ -103,7 +115,7 @@ function clearFilters() {
 </script>
 
 <template>
-  <div class="w-full px-6 pt-6 pb-10">
+  <div class="w-full px-4 sm:px-6 pt-4 sm:pt-6 pb-10">
 
     <!-- ── Filter block ─────────────────────────────────────── -->
     <div class="bg-ds-navy/80 border border-ds-neon/20 rounded-xl mb-6">
@@ -253,6 +265,11 @@ function clearFilters() {
     <!-- Loading -->
     <div v-if="deckStore.loading" class="flex justify-center py-16">
       <div class="w-8 h-8 border-2 border-ds-royal border-t-transparent rounded-full animate-spin" />
+    </div>
+
+    <div v-else-if="deckStore.loadError" class="text-center py-16">
+      <p class="text-ds-slate mb-3">{{ deckStore.loadError }}</p>
+      <BaseButton variant="accent" size="sm" @click="deckStore.loadUserDecks()">Retry</BaseButton>
     </div>
 
     <!-- No decks at all -->

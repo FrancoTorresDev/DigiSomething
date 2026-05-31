@@ -16,6 +16,8 @@ const displayCount = ref(INITIAL_DISPLAY)
 
 type Tab = 'all' | 'eggs' | 'main'
 const activeTab = ref<Tab>('all')
+type MobilePanel = 'cards' | 'deck'
+const mobilePanel = ref<MobilePanel>('cards')
 
 const tabs: { key: Tab; label: string }[] = [
   { key: 'all',  label: 'All'       },
@@ -72,10 +74,30 @@ function onCardClick(card: DigimonCard): void {
 </script>
 
 <template>
-  <div class="flex h-[calc(100vh-4rem)] overflow-hidden">
+  <div class="flex flex-col md:flex-row h-[calc(100vh-4rem)] overflow-hidden">
+
+    <!-- Mobile panel switcher (phones only) -->
+    <div class="md:hidden flex shrink-0 border-b border-ds-neon/20 bg-ds-midnight">
+      <button
+        @click="mobilePanel = 'cards'"
+        class="flex-1 py-3 text-sm font-medium transition-colors"
+        :class="mobilePanel === 'cards' ? 'text-ds-gold border-b-2 border-ds-gold' : 'text-ds-slate'"
+      >Card Library</button>
+      <button
+        @click="mobilePanel = 'deck'"
+        class="flex-1 py-3 text-sm font-medium transition-colors relative"
+        :class="mobilePanel === 'deck' ? 'text-ds-gold border-b-2 border-ds-gold' : 'text-ds-slate'"
+      >
+        My Deck
+        <span v-if="deckStore.activeDeck.cards.length > 0" class="ml-1 text-xs text-ds-gold/60">({{ deckStore.activeDeck.cards.reduce((s, c) => s + c.quantity, 0) }})</span>
+      </button>
+    </div>
 
     <!-- Left: card library (60%) -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <div
+      class="flex-1 flex flex-col min-w-0 overflow-hidden"
+      :class="mobilePanel !== 'cards' ? 'hidden md:flex' : 'flex'"
+    >
 
       <!-- Tab bar -->
       <div class="px-5 pt-4 pb-0 shrink-0 flex items-center gap-2 border-b border-ds-neon/20 bg-ds-midnight">
@@ -114,7 +136,7 @@ function onCardClick(card: DigimonCard): void {
           v-else
           :cards="visibleCards"
           :selectable="true"
-          grid-class="grid grid-cols-6 gap-3"
+          grid-class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"
           @card-click="onCardClick"
         />
 
@@ -133,7 +155,7 @@ function onCardClick(card: DigimonCard): void {
         <!-- Skeleton cards while loading more -->
         <div
           v-if="cardStore.loading && cardStore.allCards.length > 0"
-          class="grid grid-cols-6 gap-3 mt-1 pb-4"
+          class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 mt-1 pb-4"
         >
           <div
             v-for="n in 12"
@@ -147,7 +169,10 @@ function onCardClick(card: DigimonCard): void {
     </div>
 
     <!-- Right: deck builder panel (40%) -->
-    <div class="w-2/5 shrink-0 border-l border-ds-neon/20 overflow-hidden flex flex-col">
+    <div
+      class="w-full md:w-2/5 shrink-0 border-t md:border-t-0 md:border-l border-ds-neon/20 overflow-hidden flex flex-col"
+      :class="mobilePanel !== 'deck' ? 'hidden md:flex' : 'flex'"
+    >
       <DeckList />
     </div>
   </div>

@@ -4,6 +4,7 @@ import { useCardStore } from '@/stores/cardStore'
 import CardGrid from '@/components/cards/CardGrid.vue'
 import CardDetailModal from '@/components/cards/CardDetailModal.vue'
 import FilterBar from '@/components/filters/FilterBar.vue'
+import AdSlot from '@/components/ads/AdSlot.vue'
 import type { DigimonCard } from '@/models/Card'
 
 const cardStore = useCardStore()
@@ -12,6 +13,8 @@ const showModal = ref(false)
 const INITIAL_DISPLAY = 36
 const LOAD_MORE_STEP = 36
 const displayCount = ref(INITIAL_DISPLAY)
+const topAdSlot = import.meta.env.VITE_ADSENSE_SLOT_GALLERY_TOP ?? ''
+const inlineAdSlot = import.meta.env.VITE_ADSENSE_SLOT_GALLERY_INLINE ?? ''
 
 const visibleCards = computed(() => cardStore.filteredCards.slice(0, displayCount.value))
 const hasLocalMore = computed(() => displayCount.value < cardStore.filteredCards.length)
@@ -38,7 +41,7 @@ function loadMore(): void {
 </script>
 
 <template>
-  <div class="max-w-screen-2xl mx-auto px-4 py-10">
+  <div class="max-w-screen-2xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
     <!-- Page header -->
     <div class="mb-6">
       <h1 class="text-3xl font-bold text-ds-soft-white mb-1">Card Library</h1>
@@ -48,6 +51,10 @@ function loadMore(): void {
     <!-- Filters -->
     <div class="mb-6">
       <FilterBar />
+    </div>
+
+    <div v-if="topAdSlot" class="mb-6">
+      <AdSlot :slot="topAdSlot" />
     </div>
 
     <!-- Initial loading -->
@@ -74,6 +81,10 @@ function loadMore(): void {
       </p>
 
       <CardGrid :cards="visibleCards" @card-click="onCardClick" />
+
+      <div v-if="inlineAdSlot" class="mt-8">
+        <AdSlot :slot="inlineAdSlot" />
+      </div>
 
       <!-- Load more -->
       <div v-if="hasLocalMore || cardStore.hasMore" class="flex justify-center mt-12">

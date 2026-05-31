@@ -6,24 +6,34 @@ import { useAuthStore } from '@/stores/authStore'
 
 const auth = useAuthStore()
 const route = useRoute()
-const deckOpen   = ref(false)
-const cardsOpen  = ref(false)
+const deckOpen    = ref(false)
+const cardsOpen   = ref(false)
+const mobileOpen  = ref(false)
+const mobileDecks = ref(false)
+const mobileCards = ref(false)
 
 const deckRoutes  = ['/deck-builder', '/community-decks', '/profile']
 const cardRoutes  = ['/gallery', '/sets']
 const deckActive  = () => deckRoutes.some(r => route.path.startsWith(r))
 const cardsActive = () => cardRoutes.some(r => route.path.startsWith(r))
+
+function closeMobile() {
+  mobileOpen.value  = false
+  mobileDecks.value = false
+  mobileCards.value = false
+}
 </script>
 
 <template>
   <nav
-    class="fixed top-0 inset-x-0 z-50 bg-ds-navy/95 backdrop-blur border-b border-ds-neon/20 h-16 flex items-stretch px-6 gap-8"
+    class="fixed top-0 inset-x-0 z-50 bg-ds-navy/95 backdrop-blur border-b border-ds-neon/20 h-16 flex items-stretch px-4 sm:px-6 gap-4 sm:gap-8"
   >
     <RouterLink to="/gallery" class="shrink-0 flex items-center hover:opacity-80 transition-opacity">
       <img src="/logo.png" alt="DigiSomething" class="h-9 w-auto" />
     </RouterLink>
 
-    <div class="flex items-stretch gap-6 flex-1">
+    <!-- Desktop nav links -->
+    <div class="hidden md:flex items-stretch gap-6 flex-1">
       <RouterLink
         to="/news"
         class="nav-link relative h-full flex items-center text-sm font-display text-ds-slate hover:text-ds-soft-white transition-colors whitespace-nowrap"
@@ -154,18 +164,153 @@ const cardsActive = () => cardRoutes.some(r => route.path.startsWith(r))
           </div>
         </Transition>
       </div>
-
-      <RouterLink
-        to="/tournament"
-        class="nav-link relative h-full flex items-center text-sm font-display text-ds-slate hover:text-ds-soft-white transition-colors whitespace-nowrap"
-        active-class="nav-link--active"
-      >
-        Tournament
-      </RouterLink>
     </div>
 
-    <LoginButton class="shrink-0 self-center" />
+    <!-- Desktop login button -->
+    <LoginButton class="hidden md:flex shrink-0 self-center" />
+
+    <!-- Mobile right side: login + hamburger -->
+    <div class="md:hidden flex items-center gap-2 ml-auto">
+      <LoginButton class="shrink-0 self-center" />
+      <button
+        @click="mobileOpen = !mobileOpen"
+        class="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-lg text-ds-slate hover:text-ds-soft-white transition-colors"
+        aria-label="Toggle navigation"
+      >
+        <span
+          class="block w-5 h-0.5 bg-current rounded transition-all duration-200"
+          :class="mobileOpen ? 'translate-y-2 rotate-45' : ''"
+        />
+        <span
+          class="block w-5 h-0.5 bg-current rounded transition-all duration-200"
+          :class="mobileOpen ? 'opacity-0' : ''"
+        />
+        <span
+          class="block w-5 h-0.5 bg-current rounded transition-all duration-200"
+          :class="mobileOpen ? '-translate-y-2 -rotate-45' : ''"
+        />
+      </button>
+    </div>
   </nav>
+
+  <!-- Mobile menu drawer -->
+  <Transition name="mobile-menu">
+    <div
+      v-if="mobileOpen"
+      class="md:hidden fixed inset-0 top-16 z-40 flex"
+    >
+      <!-- Backdrop -->
+      <div
+        class="absolute inset-0 bg-ds-midnight/80 backdrop-blur-sm"
+        @click="closeMobile"
+      />
+      <!-- Drawer panel -->
+      <div class="relative bg-ds-navy border-r border-ds-neon/20 w-72 h-full overflow-y-auto py-4 shadow-2xl flex flex-col gap-1">
+
+        <!-- News -->
+        <RouterLink
+          to="/news"
+          class="flex items-center gap-3 px-5 py-3 text-sm text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight/60 transition-colors"
+          active-class="text-ds-soft-white bg-ds-midnight/40"
+          @click="closeMobile"
+        >
+          <svg class="w-4 h-4 text-ds-cyan shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v8a2 2 0 01-2 2z"/>
+          </svg>
+          News
+        </RouterLink>
+
+        <div class="h-px bg-ds-neon/10 mx-4 my-1" />
+
+        <!-- Cards section -->
+        <button
+          @click="mobileCards = !mobileCards"
+          class="flex items-center justify-between gap-3 px-5 py-3 text-sm w-full text-left transition-colors"
+          :class="cardsActive() ? 'text-ds-soft-white' : 'text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight/60'"
+        >
+          <span class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-ds-cyan shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Cards
+          </span>
+          <svg class="w-3 h-3 transition-transform shrink-0" :class="mobileCards ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div v-if="mobileCards" class="pl-5 flex flex-col gap-0.5">
+          <RouterLink
+            to="/gallery"
+            class="flex items-center gap-3 px-4 py-2.5 text-sm text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight/60 rounded-lg transition-colors"
+            active-class="text-ds-soft-white bg-ds-midnight/40"
+            @click="closeMobile"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-ds-cyan shrink-0" />
+            Card Library
+          </RouterLink>
+          <RouterLink
+            to="/sets"
+            class="flex items-center gap-3 px-4 py-2.5 text-sm text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight/60 rounded-lg transition-colors"
+            active-class="text-ds-soft-white bg-ds-midnight/40"
+            @click="closeMobile"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-ds-cyan shrink-0" />
+            Card Sets
+          </RouterLink>
+        </div>
+
+        <div class="h-px bg-ds-neon/10 mx-4 my-1" />
+
+        <!-- Decks section -->
+        <button
+          @click="mobileDecks = !mobileDecks"
+          class="flex items-center justify-between gap-3 px-5 py-3 text-sm w-full text-left transition-colors"
+          :class="deckActive() ? 'text-ds-soft-white' : 'text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight/60'"
+        >
+          <span class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-ds-gold shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M5 7l2 11a2 2 0 002 2h6a2 2 0 002-2l2-11" />
+            </svg>
+            Decks
+          </span>
+          <svg class="w-3 h-3 transition-transform shrink-0" :class="mobileDecks ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div v-if="mobileDecks" class="pl-5 flex flex-col gap-0.5">
+          <RouterLink
+            to="/community-decks"
+            class="flex items-center gap-3 px-4 py-2.5 text-sm text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight/60 rounded-lg transition-colors"
+            active-class="text-ds-soft-white bg-ds-midnight/40"
+            @click="closeMobile"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-ds-gold shrink-0" />
+            Community Decks
+          </RouterLink>
+          <RouterLink
+            to="/deck-builder"
+            class="flex items-center gap-3 px-4 py-2.5 text-sm text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight/60 rounded-lg transition-colors"
+            active-class="text-ds-soft-white bg-ds-midnight/40"
+            @click="closeMobile"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-ds-gold shrink-0" />
+            Deck Builder
+          </RouterLink>
+          <RouterLink
+            v-if="auth.isLoggedIn"
+            to="/profile"
+            class="flex items-center gap-3 px-4 py-2.5 text-sm text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight/60 rounded-lg transition-colors"
+            active-class="text-ds-soft-white bg-ds-midnight/40"
+            @click="closeMobile"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-ds-gold shrink-0" />
+            My Decks
+          </RouterLink>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -204,5 +349,14 @@ const cardsActive = () => cardRoutes.some(r => route.path.startsWith(r))
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+.mobile-menu-enter-active,
+.mobile-menu-leave-active {
+  transition: opacity 0.2s ease;
+}
+.mobile-menu-enter-from,
+.mobile-menu-leave-to {
+  opacity: 0;
 }
 </style>

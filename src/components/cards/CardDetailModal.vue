@@ -177,7 +177,7 @@ function highlightEffect(text: string, context: 'main' | 'source' = 'main'): str
         @click.self="emit('close')"
       >
         <div
-          class="relative max-w-4xl w-full rounded-2xl border bg-ds-midnight p-6 shadow-2xl flex flex-col sm:flex-row gap-6"
+          class="relative max-w-4xl w-full rounded-2xl border bg-ds-midnight p-4 sm:p-6 shadow-2xl flex flex-col sm:flex-row gap-4 sm:gap-6 max-h-[90vh] overflow-y-auto"
           :class="card ? (COLOR_STYLE[card.color] ?? 'border-gray-700') : ''"
         >
           <!-- Close button -->
@@ -191,7 +191,7 @@ function highlightEffect(text: string, context: 'main' | 'source' = 'main'): str
           >✕</BaseButton>
 
           <!-- Card image -->
-          <div class="w-full sm:w-80 shrink-0">
+          <div class="w-full sm:w-64 md:w-80 shrink-0">
             <img
               v-if="card.imgurl"
               :src="card.imgurl"
