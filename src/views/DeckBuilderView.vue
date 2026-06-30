@@ -74,7 +74,7 @@ function onCardClick(card: DigimonCard): void {
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row h-[calc(100vh-4rem)] overflow-hidden">
+  <div class="flex flex-col md:flex-row min-h-[calc(100svh-4rem)] md:h-[calc(100vh-4rem)] overflow-hidden">
 
     <!-- Mobile panel switcher (phones only) -->
     <div class="md:hidden flex shrink-0 border-b border-ds-neon/20 bg-ds-midnight">
@@ -100,7 +100,7 @@ function onCardClick(card: DigimonCard): void {
     >
 
       <!-- Tab bar -->
-      <div class="px-5 pt-4 pb-0 shrink-0 flex items-center gap-2 border-b border-ds-neon/20 bg-ds-midnight">
+      <div class="px-3 sm:px-5 pt-3 sm:pt-4 pb-0 shrink-0 flex items-center gap-2 border-b border-ds-neon/20 bg-ds-midnight overflow-x-auto">
         <button
           v-for="tab in tabs"
           :key="tab.key"
@@ -115,7 +115,7 @@ function onCardClick(card: DigimonCard): void {
       </div>
 
       <!-- Filter bar + count -->
-      <div class="px-5 pt-3 pb-3 border-b border-ds-neon/20 shrink-0 bg-ds-navy">
+      <div class="px-3 sm:px-5 pt-3 pb-3 border-b border-ds-neon/20 shrink-0 bg-ds-navy">
         <FilterBar />
         <p class="text-xs text-ds-slate/50 mt-2">
           Showing {{ visibleCards.length }} of {{ tabCards.length }} cards
@@ -124,7 +124,7 @@ function onCardClick(card: DigimonCard): void {
       </div>
 
       <!-- Scrollable card grid -->
-      <div ref="scrollContainer" class="flex-1 overflow-y-auto px-5 py-4 bg-ds-midnight">
+      <div ref="scrollContainer" class="flex-1 overflow-y-auto px-3 sm:px-5 py-4 bg-ds-midnight">
         <div
           v-if="cardStore.loading && cardStore.allCards.length === 0"
           class="flex justify-center py-28"
@@ -136,7 +136,7 @@ function onCardClick(card: DigimonCard): void {
           v-else
           :cards="visibleCards"
           :selectable="true"
-          grid-class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"
+          grid-class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"
           @card-click="onCardClick"
         />
 
@@ -155,7 +155,7 @@ function onCardClick(card: DigimonCard): void {
         <!-- Skeleton cards while loading more -->
         <div
           v-if="cardStore.loading && cardStore.allCards.length > 0"
-          class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 mt-1 pb-4"
+          class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 mt-1 pb-4"
         >
           <div
             v-for="n in 12"

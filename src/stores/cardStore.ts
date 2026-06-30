@@ -17,6 +17,18 @@ export interface CardFilters {
 
 const PAGE_SIZE = 50
 
+function splitColors(value: string): string[] {
+  return value
+    .split('/')
+    .map((c) => c.trim())
+    .filter(Boolean)
+}
+
+function extractCardColors(card: DigimonCard): string[] {
+  const all = [...splitColors(card.color), ...splitColors(card.color2 ?? '')]
+  return [...new Set(all)]
+}
+
 export const useCardStore = defineStore('cards', () => {
   const allCards = ref<DigimonCard[]>([])
   const loading = ref(false)
@@ -52,7 +64,7 @@ export const useCardStore = defineStore('cards', () => {
           if (!card.name.toLowerCase().includes(q)) return false
         }
       }
-      if (color && card.color !== color) return false
+      if (color && !extractCardColors(card).includes(color)) return false
       if (type && card.type !== type) return false
       if (rarity && card.rarity !== rarity) return false
       if (card.level !== undefined && (card.level < levelRange[0] || card.level > levelRange[1])) return false

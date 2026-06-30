@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import LoginButton from './LoginButton.vue'
 import { useAuthStore } from '@/stores/authStore'
@@ -22,14 +22,26 @@ function closeMobile() {
   mobileDecks.value = false
   mobileCards.value = false
 }
+
+watch(() => route.path, () => {
+  closeMobile()
+})
+
+watch(mobileOpen, (isOpen) => {
+  document.body.style.overflow = isOpen ? 'hidden' : ''
+})
+
+onBeforeUnmount(() => {
+  document.body.style.overflow = ''
+})
 </script>
 
 <template>
   <nav
-    class="fixed top-0 inset-x-0 z-50 bg-ds-navy/95 backdrop-blur border-b border-ds-neon/20 h-16 flex items-stretch px-4 sm:px-6 gap-4 sm:gap-8"
+    class="fixed top-0 inset-x-0 z-50 bg-ds-navy/95 backdrop-blur border-b border-ds-neon/20 h-16 flex items-stretch px-3 sm:px-6 gap-3 sm:gap-8"
   >
     <RouterLink to="/gallery" class="shrink-0 flex items-center hover:opacity-80 transition-opacity">
-      <img src="/logo.png" alt="DigiSomething" class="h-9 w-auto" />
+      <img src="/logo.png" alt="DigiSomething" class="h-8 sm:h-9 w-auto" />
     </RouterLink>
 
     <!-- Desktop nav links -->
@@ -170,7 +182,7 @@ function closeMobile() {
     <LoginButton class="hidden md:flex shrink-0 self-center" />
 
     <!-- Mobile right side: login + hamburger -->
-    <div class="md:hidden flex items-center gap-2 ml-auto">
+    <div class="md:hidden flex items-center gap-1.5 ml-auto">
       <LoginButton class="shrink-0 self-center" />
       <button
         @click="mobileOpen = !mobileOpen"
@@ -205,7 +217,7 @@ function closeMobile() {
         @click="closeMobile"
       />
       <!-- Drawer panel -->
-      <div class="relative bg-ds-navy border-r border-ds-neon/20 w-72 h-full overflow-y-auto py-4 shadow-2xl flex flex-col gap-1">
+      <div class="relative bg-ds-navy border-r border-ds-neon/20 w-full max-w-[22rem] h-full overflow-y-auto py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-2xl flex flex-col gap-1">
 
         <!-- News -->
         <RouterLink

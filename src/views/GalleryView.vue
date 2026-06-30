@@ -41,11 +41,11 @@ function loadMore(): void {
 </script>
 
 <template>
-  <div class="max-w-screen-2xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
+  <div class="max-w-screen-2xl mx-auto px-3 sm:px-4 py-4 sm:py-10">
     <!-- Page header -->
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-ds-soft-white mb-1">Card Library</h1>
-      <p class="text-ds-slate">Browse and discover all Digimon cards</p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-ds-soft-white mb-1">Card Library</h1>
+      <p class="text-sm sm:text-base text-ds-slate">Browse and discover all Digimon cards</p>
     </div>
 
     <!-- Filters -->
@@ -87,11 +87,11 @@ function loadMore(): void {
       </div>
 
       <!-- Load more -->
-      <div v-if="hasLocalMore || cardStore.hasMore" class="flex justify-center mt-12">
+      <div v-if="hasLocalMore || cardStore.hasMore" class="flex justify-center mt-10 sm:mt-12">
         <button
           @click="loadMore"
           :disabled="cardStore.loading"
-          class="bg-ds-midnight hover:bg-ds-navy text-ds-soft-white text-sm px-10 py-3 rounded-xl border border-ds-neon/30 transition-colors disabled:opacity-50"
+          class="w-full sm:w-auto bg-ds-midnight hover:bg-ds-navy text-ds-soft-white text-sm px-6 sm:px-10 py-3 rounded-xl border border-ds-neon/30 transition-colors disabled:opacity-50"
         >
           {{ cardStore.loading ? 'Loading…' : 'Load More Cards' }}
         </button>

@@ -342,7 +342,7 @@ function onGlobalDrop(e: DragEvent) {
           >{{ deck.digiEggTotal }}/5</span>
         </div>
 
-        <div v-if="digiEggCards.length" class="relative grid grid-cols-8 gap-1">
+        <div v-if="digiEggCards.length" class="relative grid grid-cols-5 sm:grid-cols-8 gap-1">
           <DeckThumbnail
             v-for="entry in digiEggCards"
             :key="entry.card.cardnumber"
@@ -382,7 +382,7 @@ function onGlobalDrop(e: DragEvent) {
           >{{ deck.mainDeckTotal }}/50</span>
         </div>
 
-        <div v-if="mainDeckCards.length" class="relative grid grid-cols-8 gap-1">
+        <div v-if="mainDeckCards.length" class="relative grid grid-cols-5 sm:grid-cols-8 gap-1">
           <DeckThumbnail
             v-for="entry in mainDeckCards"
             :key="entry.card.cardnumber"
@@ -464,10 +464,10 @@ function onGlobalDrop(e: DragEvent) {
     <!-- Save Deck Modal -->
     <div
       v-if="showSaveModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-3 sm:p-4"
       @click.self="showSaveModal = false"
     >
-      <div class="bg-ds-navy border border-ds-neon/30 rounded-xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-4">
+      <div class="bg-ds-navy border border-ds-neon/30 rounded-2xl sm:rounded-xl p-4 sm:p-6 w-full max-w-md shadow-2xl flex flex-col gap-4 max-h-[90svh] overflow-y-auto">
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-ds-soft-white font-semibold text-base">{{ deck.activeDeck.id ? 'Update Deck' : 'Save Deck' }}</h2>
@@ -569,10 +569,10 @@ function onGlobalDrop(e: DragEvent) {
     <!-- Import Modal -->
     <div
       v-if="showImportModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-3 sm:p-4"
       @click.self="showImportModal = false; importError = ''; importText = ''; importMode = 'digimeta'"
     >
-      <div class="bg-ds-navy border border-ds-neon/30 rounded-xl p-6 w-full max-w-lg shadow-2xl flex flex-col gap-4">
+      <div class="bg-ds-navy border border-ds-neon/30 rounded-2xl sm:rounded-xl p-4 sm:p-6 w-full max-w-lg shadow-2xl flex flex-col gap-4 max-h-[90svh] overflow-y-auto">
         <div class="flex items-center justify-between">
           <h2 class="text-ds-soft-white font-semibold text-base">Import Deck</h2>
           <BaseButton variant="ghost" iconOnly size="sm" @click="showImportModal = false; importError = ''; importText = ''; importMode = 'digimeta'">&times;</BaseButton>

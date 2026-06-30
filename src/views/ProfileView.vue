@@ -115,13 +115,13 @@ function clearFilters() {
 </script>
 
 <template>
-  <div class="w-full px-4 sm:px-6 pt-4 sm:pt-6 pb-10">
+  <div class="w-full px-3 sm:px-6 pt-4 sm:pt-6 pb-10">
 
     <!-- ── Filter block ─────────────────────────────────────── -->
     <div class="bg-ds-navy/80 border border-ds-neon/20 rounded-xl mb-6">
 
       <!-- Row 1: search + sort -->
-      <div class="flex items-center gap-3 px-4 py-3 border-b border-ds-neon/20">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-4 py-3 border-b border-ds-neon/20">
         <!-- search -->
         <div class="flex-1 flex items-center gap-2 bg-ds-midnight rounded-lg px-3 py-2">
           <svg class="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -141,10 +141,10 @@ function clearFilters() {
         </div>
 
         <!-- sort -->
-        <div class="relative" @mouseleave="showSortMenu = false">
+        <div class="relative w-full sm:w-auto" @mouseleave="showSortMenu = false">
           <button
             @click="showSortMenu = !showSortMenu"
-            class="flex items-center gap-1.5 text-sm text-ds-slate hover:text-ds-soft-white border border-ds-neon/30 hover:border-ds-neon/60 rounded-lg px-3 py-2 transition-colors whitespace-nowrap"
+            class="flex w-full sm:w-auto justify-between sm:justify-start items-center gap-1.5 text-sm text-ds-slate hover:text-ds-soft-white border border-ds-neon/30 hover:border-ds-neon/60 rounded-lg px-3 py-2 transition-colors whitespace-nowrap"
           >
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
@@ -156,7 +156,7 @@ function clearFilters() {
           </button>
           <div
             v-if="showSortMenu"
-            class="absolute right-0 top-full mt-1 z-20 w-44 bg-ds-navy border border-ds-neon/30 rounded-xl shadow-2xl overflow-hidden"
+            class="absolute right-0 top-full mt-1 z-20 w-full sm:w-44 bg-ds-navy border border-ds-neon/30 rounded-xl shadow-2xl overflow-hidden"
             @mouseleave="showSortMenu = false"
           >
             <button
@@ -173,7 +173,7 @@ function clearFilters() {
       <!-- Row 2: color pips + status dropdown -->
       <div class="flex items-center gap-3 px-4 py-3 border-b border-ds-neon/20 flex-wrap">
         <!-- color circles -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 overflow-x-auto pb-1">
           <button
             v-for="color in COLORS"
             :key="color"
@@ -303,7 +303,7 @@ function clearFilters() {
         <div class="absolute top-2 right-2 z-10">
           <button
             @click.prevent="toggleMenu(deck.id)"
-            class="w-6 h-6 flex items-center justify-center rounded-md bg-ds-navy/80 text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight transition-colors opacity-0 group-hover:opacity-100"
+            class="w-6 h-6 flex items-center justify-center rounded-md bg-ds-navy/80 text-ds-slate hover:text-ds-soft-white hover:bg-ds-midnight transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
             title="Options"
           >
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">

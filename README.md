@@ -59,6 +59,34 @@ Use `.env.production.example` as a template.
 npm run deploy:prod
 ```
 
+## Ads (Google AdSense)
+
+This project supports consent-gated AdSense display ads.
+
+### 1. Configure env values
+Add these to `.env.production` (or `.env` for local testing):
+
+```bash
+VITE_ADSENSE_CLIENT_ID=ca-pub-xxxxxxxxxxxxxxxx
+VITE_ADSENSE_SLOT_GALLERY_TOP=1234567890
+VITE_ADSENSE_SLOT_GALLERY_INLINE=1234567890
+VITE_ADSENSE_SLOT_NEWS_TOP=1234567890
+VITE_ADSENSE_SLOT_NEWS_INLINE=1234567890
+VITE_ADSENSE_SLOT_COMMUNITY_TOP=1234567890
+VITE_ADSENSE_SLOT_COMMUNITY_INLINE=1234567890
+VITE_ADSENSE_SLOT_STICKY_FOOTER=1234567890
+```
+
+### 2. Consent behavior
+- AdSense script is loaded only after users accept ads cookies in the consent banner.
+- If users reject non-essential cookies, ad slots remain inactive.
+
+### 3. Current placements
+- Card Gallery: top + inline slot
+- News: top + inline slot
+- Community Decks: top + inline slot
+- Sticky footer ad on most routes (hidden on deck builder)
+
 ## Production Publish Checklist
 
 ### 1. One-time Firebase CLI setup

@@ -637,7 +637,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
               </span>
             </div>
             <!-- Right actions -->
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
               <button
                 v-if="isOwner"
                 @click="editDeck"
@@ -707,7 +707,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
           </div>
 
           <!-- Owner + meta row -->
-          <div class="flex items-center gap-4 mt-3 flex-wrap">
+          <div class="flex items-center gap-3 sm:gap-4 mt-3 flex-wrap">
             <div class="flex items-center gap-2">
               <img
                 v-if="deck.ownerPhoto"
@@ -769,7 +769,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
               v-if="deck.qrCodeUrl"
               :href="deck.qrCodeUrl"
               target="_blank"
-              class="ml-auto shrink-0"
+              class="ml-0 sm:ml-auto shrink-0"
               title="Scan to open this deck"
             >
               <img
@@ -935,17 +935,17 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
             <div class="bg-ds-navy border border-ds-neon/20 rounded-xl p-6 space-y-6">
 
               <!-- Key metrics -->
-              <div class="grid grid-cols-3 gap-3 text-center">
+              <div class="grid grid-cols-3 gap-2 sm:gap-3 text-center">
                 <div>
-                  <div class="text-4xl font-bold text-ds-soft-white">{{ totalMainCount }}</div>
+                  <div class="text-3xl sm:text-4xl font-bold text-ds-soft-white">{{ totalMainCount }}</div>
                   <div class="text-[11px] text-ds-slate/60 uppercase tracking-wider mt-1">Cards</div>
                 </div>
                 <div>
-                  <div class="text-4xl font-bold text-ds-soft-white">{{ avgLevel }}</div>
+                  <div class="text-3xl sm:text-4xl font-bold text-ds-soft-white">{{ avgLevel }}</div>
                   <div class="text-[11px] text-ds-slate/60 uppercase tracking-wider mt-1">Avg Lv</div>
                 </div>
                 <div>
-                  <div class="text-4xl font-bold text-ds-soft-white">{{ avgDP }}k</div>
+                  <div class="text-3xl sm:text-4xl font-bold text-ds-soft-white">{{ avgDP }}k</div>
                   <div class="text-[11px] text-ds-slate/60 uppercase tracking-wider mt-1">Avg DP</div>
                 </div>
               </div>
@@ -1198,7 +1198,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                     <span class="text-xs font-semibold py-2 pr-4 border-b-2 border-ds-gold text-ds-gold">Going First</span>
                     <span class="text-xs text-ds-slate/40 py-2 px-4 border-b-2 border-transparent">Going Second</span>
                   </div>
-                  <div class="grid grid-cols-2 gap-4">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p class="text-[10px] uppercase tracking-widest text-ds-gold mb-2 font-semibold">Going First</p>
                       <p v-if="mu.notesGoingFirst" class="text-sm text-ds-soft-white/80 whitespace-pre-wrap leading-relaxed">{{ mu.notesGoingFirst }}</p>
@@ -1236,7 +1236,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
           <section class="mb-10 space-y-5">
 
             <!-- Stats bar -->
-            <div v-if="matches.length > 0" class="grid grid-cols-4 gap-3">
+            <div v-if="matches.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div class="bg-ds-navy border border-ds-neon/20 rounded-xl p-4 text-center">
                 <p class="text-2xl font-bold text-ds-soft-white">{{ matchStats.total }}</p>
                 <p class="text-xs text-ds-slate/50 mt-1 uppercase tracking-widest">Games</p>
@@ -1276,7 +1276,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
               <div
                 v-for="match in matches"
                 :key="match.id"
-                class="bg-ds-navy border border-ds-neon/20 rounded-xl px-4 py-3 flex items-center gap-4"
+                class="bg-ds-navy border border-ds-neon/20 rounded-xl px-4 py-3 flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4"
               >
                 <!-- Result badge -->
                 <span
@@ -1289,7 +1289,7 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
                 >{{ match.result === 'win' ? 'WIN' : match.result === 'loss' ? 'LOSS' : 'DRAW' }}</span>
 
                 <!-- Color dots + opponent info -->
-                <div class="flex items-center gap-2 flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-1 min-w-0 w-full sm:w-auto">
                   <div class="flex items-center gap-0.5 shrink-0">
                     <span
                       v-for="color in match.opponentColors"
@@ -1370,10 +1370,10 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
     <Teleport to="body">
       <div
         v-if="showAddMatchModal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-3 sm:px-4 py-3 sm:py-4"
         @click.self="showAddMatchModal = false"
       >
-        <div class="bg-ds-navy border border-ds-neon/30 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5">
+        <div class="bg-ds-navy border border-ds-neon/30 rounded-2xl p-4 sm:p-6 w-full max-w-md shadow-2xl flex flex-col gap-5 max-h-[92svh] overflow-y-auto">
 
           <!-- Header -->
           <div class="flex items-center justify-between">
@@ -1492,10 +1492,10 @@ function matchupDisplayTitle(mu: DeckMatchup): string {
     <Teleport to="body">
       <div
         v-if="showAddMatchupModal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-3 sm:px-4 py-3 sm:py-4"
         @click.self="showAddMatchupModal = false"
       >
-        <div class="bg-ds-navy border border-ds-neon/30 rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+        <div class="bg-ds-navy border border-ds-neon/30 rounded-2xl p-4 sm:p-6 w-full max-w-md shadow-2xl flex flex-col gap-5 max-h-[92svh] overflow-y-auto">
 
           <!-- Header -->
           <div class="flex items-center justify-between">

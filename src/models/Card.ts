@@ -3,6 +3,7 @@ export interface DigimonCard {
   cardnumber: string
   type: string
   color: string
+  color2?: string
   level?: number
   dp?: number
   playCost?: number

@@ -30,18 +30,18 @@ function openSet(set: DigimonSet) {
 </script>
 
 <template>
-  <div class="max-w-screen-xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+  <div class="max-w-screen-xl mx-auto px-3 sm:px-6 py-5 sm:py-10">
 
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-ds-soft-white mb-1">Card Sets</h1>
-      <p class="text-ds-slate">Browse all Digimon Card Game releases</p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-ds-soft-white mb-1">Card Sets</h1>
+      <p class="text-sm sm:text-base text-ds-slate">Browse all Digimon Card Game releases</p>
     </div>
 
     <!-- Controls -->
     <div class="flex flex-col gap-3 mb-8">
       <!-- Row 1: search + count -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <!-- Search -->
         <div class="flex items-center gap-2 bg-ds-navy border border-ds-neon/20 rounded-lg px-3 py-2 flex-1 focus-within:border-ds-cyan transition-colors">
           <svg class="w-4 h-4 text-ds-slate shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -54,7 +54,7 @@ function openSet(set: DigimonSet) {
             class="flex-1 bg-transparent text-sm text-ds-soft-white placeholder-ds-slate/60 outline-none"
           />
         </div>
-        <span class="text-sm text-ds-slate/60 shrink-0">{{ filteredSets.length }} sets</span>
+        <span class="text-xs sm:text-sm text-ds-slate/60 shrink-0">{{ filteredSets.length }} sets</span>
       </div>
 
       <!-- Row 2: Type filter tabs (scrollable on mobile) -->

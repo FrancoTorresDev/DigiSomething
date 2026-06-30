@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { Deck } from '@/models/Deck'
 import type { DigimonCard } from '@/models/Card'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import { cardImageUrl, qrCodeUrl } from '@/services/exportAssets'
 
 const props = defineProps<{ deck: Deck }>()
 const emit = defineEmits<{ close: [] }>()
@@ -78,6 +79,7 @@ const sortedCards = computed<DigimonCard[]>(() => {
 function loadImg(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    img.crossOrigin = 'anonymous'
     img.onload = () => resolve(img)
     img.onerror = reject
     img.src = src
@@ -128,12 +130,11 @@ async function generatePreview() {
 
     // ── Load everything in parallel ────────────────────────────────────────
     const deckUrl = window.location.href
-    const qrUrl   = `/qr-api/v1/create-qr-code/?size=${QR_SIZE * SCALE}x${QR_SIZE * SCALE}&data=${encodeURIComponent(deckUrl)}&bgcolor=030712&color=EAB308&format=png&margin=2`
 
     const [qrResult, ...cardResults] = await Promise.allSettled([
-      loadImg(qrUrl),
-      ...eggCards.map(c  => loadImg(`/card-images/${c.cardnumber}.jpg`)),
-      ...mainCards.map(c => loadImg(`/card-images/${c.cardnumber}.jpg`)),
+      loadImg(qrCodeUrl(deckUrl, QR_SIZE * SCALE)),
+      ...eggCards.map(c  => loadImg(cardImageUrl(c.cardnumber))),
+      ...mainCards.map(c => loadImg(cardImageUrl(c.cardnumber))),
     ])
 
     const eggImgs  = cardResults.slice(0, eggCards.length)

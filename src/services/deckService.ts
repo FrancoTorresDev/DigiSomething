@@ -19,10 +19,32 @@ import type { Deck, DeckVersion, DeckMatch, DeckMatchup } from '@/models/Deck'
 
 const COL = 'decks'
 
-function withoutUndefined<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, value]) => value !== undefined)
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Object.prototype.toString.call(value) === '[object Object]'
+}
+
+function sanitizeForFirestore<T>(value: T): T {
+  if (value === undefined) return undefined as T
+
+  if (Array.isArray(value)) {
+    const cleaned = value
+      .map((item) => sanitizeForFirestore(item))
+      .filter((item) => item !== undefined)
+    return cleaned as T
+  }
+
+  if (!isPlainObject(value)) return value
+
+  const cleaned = Object.fromEntries(
+    Object.entries(value)
+      .map(([key, item]) => [key, sanitizeForFirestore(item)])
+      .filter(([, item]) => item !== undefined)
   )
+  return cleaned as T
+}
+
+function withoutUndefined<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
+  return sanitizeForFirestore(obj)
 }
 
 export async function getUserDecks(uid: string): Promise<Deck[]> {
@@ -107,10 +129,10 @@ export async function saveDeckVersion(
   deckId: string,
   version: Omit<DeckVersion, 'id'>
 ): Promise<string> {
-  const ref = await addDoc(collection(db, COL, deckId, 'versions'), {
+  const ref = await addDoc(collection(db, COL, deckId, 'versions'), withoutUndefined({
     ...version,
     createdAt: serverTimestamp(),
-  })
+  }))
   return ref.id
 }
 
@@ -131,10 +153,10 @@ export async function saveMatch(
   deckId: string,
   match: Omit<DeckMatch, 'id'>
 ): Promise<string> {
-  const ref = await addDoc(collection(db, COL, deckId, 'matches'), {
+  const ref = await addDoc(collection(db, COL, deckId, 'matches'), withoutUndefined({
     ...match,
     createdAt: serverTimestamp(),
-  })
+  }))
   return ref.id
 }
 
@@ -155,10 +177,10 @@ export async function saveMatchup(
   deckId: string,
   matchup: Omit<DeckMatchup, 'id'>
 ): Promise<string> {
-  const ref = await addDoc(collection(db, COL, deckId, 'matchups'), {
+  const ref = await addDoc(collection(db, COL, deckId, 'matchups'), withoutUndefined({
     ...matchup,
     createdAt: serverTimestamp(),
-  })
+  }))
   return ref.id
 }
 

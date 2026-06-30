@@ -64,7 +64,7 @@ const showAdvanced = ref(false)
       </div>
 
       <!-- Row 3 on mobile: Rarity + Advanced + Reset -->
-      <div class="flex gap-2 w-full sm:w-auto sm:contents items-center">
+      <div class="flex flex-wrap gap-2 w-full sm:w-auto sm:contents items-center">
         <!-- Rarity -->
         <select
           v-model="filters.rarity"
@@ -77,7 +77,7 @@ const showAdvanced = ref(false)
         <!-- Advanced toggle -->
         <button
           @click="showAdvanced = !showAdvanced"
-          class="text-sm px-3 py-2 rounded-lg border transition-colors shrink-0"
+          class="text-sm px-3 py-2 rounded-lg border transition-colors shrink-0 min-w-28"
           :class="showAdvanced ? 'text-ds-gold border-ds-gold/40 bg-ds-gold/10' : 'text-ds-slate border-ds-neon/30 hover:border-ds-neon/60'"
         >
           {{ showAdvanced ? '▲' : '▼' }} Advanced

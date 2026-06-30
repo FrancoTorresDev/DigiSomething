@@ -36,6 +36,7 @@ function mapCard(api: ApiCard): DigimonCard {
     name: api.name,
     type: api.type,
     color: api.color,
+    color2: api.color2 ?? undefined,
     level: api.level ?? undefined,
     dp: api.dp ?? undefined,
     playCost: api.play_cost ?? undefined,

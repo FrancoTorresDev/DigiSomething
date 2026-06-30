@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { Deck } from '@/models/Deck'
 import type { DigimonCard } from '@/models/Card'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import { cardImageUrl } from '@/services/exportAssets'
 
 const props = defineProps<{ deck: Deck }>()
 const emit = defineEmits<{ close: [] }>()
@@ -88,7 +89,7 @@ async function generatePreview() {
 
       // Load this page's images in parallel
       const imgResults = await Promise.allSettled(
-        pageCards.map(c => loadImg(`/card-images/${c.cardnumber}.jpg`))
+        pageCards.map(c => loadImg(cardImageUrl(c.cardnumber)))
       )
 
       imgResults.forEach((result, idx) => {
@@ -173,7 +174,7 @@ function downloadPdf() {
   const pagesHtml = Array.from({ length: totalPages }, (_, p) => {
     const slice = allCards.value.slice(p * per, (p + 1) * per)
     const cardsHtml = slice.map(c =>
-      `<div class="card"><img src="/card-images/${c.cardnumber}.jpg" alt="${c.cardnumber}" /></div>`
+      `<div class="card"><img src="${cardImageUrl(c.cardnumber)}" alt="${c.cardnumber}" /></div>`
     ).join('')
     return (
       `<div class="page">` +

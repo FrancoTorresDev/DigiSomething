@@ -133,10 +133,10 @@ onMounted(() => loadTournaments())
 </script>
 
 <template>
-  <div class="max-w-screen-xl mx-auto px-4 py-10">
+  <div class="max-w-screen-xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
     <!-- Header -->
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-ds-soft-white mb-1">Tournament Results</h1>
+      <h1 class="text-2xl sm:text-3xl font-bold text-ds-soft-white mb-1">Tournament Results</h1>
       <p class="text-ds-slate">Top standings and decklists from official Digimon TCG events</p>
     </div>
 
@@ -218,10 +218,10 @@ onMounted(() => loadTournaments())
 
         <!-- Standings table -->
         <div v-else-if="standings.length > 0">
-          <h2 class="text-ds-soft-white font-semibold text-lg mb-3 truncate">>
+          <h2 class="text-ds-soft-white font-semibold text-lg mb-3 truncate">
             {{ selectedTournament?.name }}
           </h2>
-          <div class="bg-ds-navy border border-ds-neon/20 rounded-xl overflow-hidden">
+          <div class="bg-ds-navy border border-ds-neon/20 rounded-xl overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
                 <tr
@@ -340,7 +340,7 @@ onMounted(() => loadTournaments())
             </div>
 
             <!-- Card grid -->
-            <div v-else class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+            <div v-else class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
               <div
                 v-for="entry in deckCards"
                 :key="entry.cardnumber"

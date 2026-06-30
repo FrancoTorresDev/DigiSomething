@@ -32,6 +32,7 @@ export const useDeckStore = defineStore('deck', () => {
   const userDecks = ref<Deck[]>([])
   const activeDeck = ref<Deck>(loadFromStorage())
   const loading = ref(false)
+  const loadError = ref<string | null>(null)
 
   watch(activeDeck, (deck) => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(deck)) } catch { /* ignore */ }
@@ -88,10 +89,34 @@ export const useDeckStore = defineStore('deck', () => {
 
   async function loadUserDecks(): Promise<void> {
     const auth = useAuthStore()
-    if (!auth.user) return
+
+    if (auth.loading) {
+      await new Promise<void>((resolve) => {
+        const stop = watch(
+          () => auth.loading,
+          (isLoading) => {
+            if (!isLoading) {
+              stop()
+              resolve()
+            }
+          }
+        )
+      })
+    }
+
+    if (!auth.user) {
+      userDecks.value = []
+      loadError.value = null
+      return
+    }
+
     loading.value = true
+    loadError.value = null
     try {
       userDecks.value = await getUserDecks(auth.user.uid)
+    } catch {
+      loadError.value = 'Unable to load your decks right now. Please try again.'
+      userDecks.value = []
     } finally {
       loading.value = false
     }
@@ -161,6 +186,7 @@ export const useDeckStore = defineStore('deck', () => {
     userDecks,
     activeDeck,
     loading,
+    loadError,
     totalCards,
     digiEggTotal,
     mainDeckTotal,

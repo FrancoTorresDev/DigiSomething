@@ -43,7 +43,7 @@ const router = createRouter({
     {
       path: '/tournament',
       name: 'tournament',
-      component: () => import('@/views/TournamentView.vue')
+      redirect: '/gallery'
     },
     {
       path: '/profile',

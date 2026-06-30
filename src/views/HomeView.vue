@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { fetchNews, type NewsItem } from '@/services/rssService'
+import AdSlot from '@/components/ads/AdSlot.vue'
 
 const news = ref<NewsItem[]>([])
 const loading = ref(true)
@@ -9,6 +10,8 @@ const error = ref<string | null>(null)
 const afterCursor = ref<string | null>(null)
 const hasMore = ref(false)
 const imageErrors = reactive(new Set<string>())
+const topAdSlot = import.meta.env.VITE_ADSENSE_SLOT_NEWS_TOP ?? ''
+const inlineAdSlot = import.meta.env.VITE_ADSENSE_SLOT_NEWS_INLINE ?? ''
 
 async function loadNews(): Promise<void> {
   loading.value = true
@@ -218,13 +221,13 @@ function formatDate(dateStr: string): string {
   </div>
 
   <!-- Page content -->
-  <div class="max-w-3xl mx-auto px-5 pt-8 pb-12">
+  <div class="max-w-3xl mx-auto px-4 sm:px-5 pt-5 sm:pt-8 pb-10 sm:pb-12">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-ds-soft-white mb-1 flex items-center gap-3">
+      <h1 class="text-xl sm:text-2xl font-bold text-ds-soft-white mb-1 flex items-center gap-3">
         <span class="w-1 h-7 rounded-full bg-ds-gold shrink-0"></span>
         News
       </h1>
-      <p class="text-ds-slate text-sm pl-4">
+      <p class="text-ds-slate text-xs sm:text-sm pl-4">
         Latest from the Digimon Card Game community ·
         <a
           href="https://www.reddit.com/r/DigimonCardGame2020"
@@ -233,6 +236,10 @@ function formatDate(dateStr: string): string {
           class="text-ds-cyan hover:text-ds-royal transition-colors"
         >r/DigimonCardGame2020</a>
       </p>
+    </div>
+
+    <div v-if="topAdSlot" class="mb-6">
+      <AdSlot :slot="topAdSlot" />
     </div>
 
     <!-- Loading -->
@@ -252,47 +259,47 @@ function formatDate(dateStr: string): string {
     </div>
 
     <!-- News feed -->
-    <div v-else class="flex flex-col gap-3">
+    <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <a
         v-for="item in news"
         :key="item.link"
         :href="item.link"
         target="_blank"
         rel="noopener noreferrer"
-        class="news-card group flex gap-0 relative overflow-hidden rounded-xl transition-all duration-200 ease-in-out hover:-translate-y-px"
+        class="news-card group flex h-full flex-col overflow-hidden rounded-xl transition-all duration-200 ease-in-out hover:-translate-y-px"
       >
-        <!-- Thumbnail -->
-        <div class="shrink-0 w-[110px] self-stretch">
+        <div class="relative aspect-[16/9] overflow-hidden bg-ds-midnight/90">
           <img
             v-if="item.thumbnail && !imageErrors.has(item.link)"
             :src="item.thumbnail"
             :alt="item.title"
-            class="w-full h-full object-cover"
-            style="border-radius: 12px 0 0 12px;"
+            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             loading="lazy"
             @error="imageErrors.add(item.link)"
           />
           <div
             v-else
-            class="w-full h-full flex flex-col items-center justify-center gap-1"
-            style="background: rgba(6,27,91,0.6); border-radius: 12px 0 0 12px;"
+            class="flex h-full w-full flex-col items-center justify-center gap-1 bg-[radial-gradient(circle_at_top,_rgba(30,220,255,0.16),_rgba(3,10,36,0.96))]"
           >
-            <span class="text-2xl font-black tracking-tight text-ds-gold/40">DS</span>
-            <span class="text-[8px] uppercase tracking-widest text-ds-slate/50">DigiSomething</span>
+            <span class="text-3xl font-black tracking-tight text-ds-gold/45">DS</span>
+            <span class="text-[10px] uppercase tracking-[0.28em] text-ds-slate/55">Reddit News</span>
+          </div>
+          <div class="absolute left-3 top-3 rounded-full border border-ds-neon/20 bg-ds-midnight/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-ds-cyan">
+            Reddit
           </div>
         </div>
 
-        <!-- Content -->
-        <div class="flex-1 min-w-0 flex flex-col justify-between px-5 py-4">
+        <div class="flex flex-1 flex-col justify-between p-4">
           <div>
-            <p class="text-ds-slate text-xs mb-1.5">
+            <p class="text-xs text-ds-slate mb-2">
               {{ item.author }} · {{ formatDate(item.pubDate) }}
             </p>
-            <h2 class="text-ds-soft-white font-semibold text-[0.95rem] leading-snug line-clamp-2 group-hover:text-ds-cyan transition-colors">
+            <h2 class="text-[0.98rem] font-semibold leading-snug text-ds-soft-white line-clamp-3 group-hover:text-ds-cyan transition-colors">
               {{ item.title }}
             </h2>
           </div>
-          <span class="text-ds-cyan text-xs font-medium mt-3 flex items-center gap-1">
+
+          <span class="mt-4 inline-flex items-center gap-1 text-xs font-medium text-ds-cyan">
             Read more
             <svg class="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -300,6 +307,10 @@ function formatDate(dateStr: string): string {
           </span>
         </div>
       </a>
+
+      <div v-if="inlineAdSlot" class="pt-2">
+        <AdSlot :slot="inlineAdSlot" />
+      </div>
 
       <!-- Load More -->
       <div class="flex justify-center pt-4 pb-6">
@@ -326,7 +337,7 @@ function formatDate(dateStr: string): string {
   background: linear-gradient(135deg, rgba(8, 24, 72, 0.82) 0%, rgba(3, 10, 36, 0.92) 100%);
   border: 1px solid rgba(30, 220, 255, 0.14);
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(30, 220, 255, 0.06);
-  min-height: 120px;
+  min-height: 100%;
 }
 .news-card:hover {
   border-color: rgba(30, 220, 255, 0.42);

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Deck } from '@/models/Deck'
 import { getTopDecks } from '@/services/deckService'
+import AdSlot from '@/components/ads/AdSlot.vue'
 
 type FirestoreTimestampLike = {
   toDate?: () => Date
@@ -14,6 +15,8 @@ const error = ref<string | null>(null)
 const loadWarning = ref<string | null>(null)
 const decks = ref<Deck[]>([])
 const brokenImages = ref(new Set<string>())
+const topAdSlot = import.meta.env.VITE_ADSENSE_SLOT_COMMUNITY_TOP ?? ''
+const inlineAdSlot = import.meta.env.VITE_ADSENSE_SLOT_COMMUNITY_INLINE ?? ''
 
 const fallbackDecks: Deck[] = [
   {
@@ -225,6 +228,7 @@ const decoratedDecks = computed(() =>
     const archetype = resolveArchetypeTag(deck.archetypeTag) ?? inferArchetype(deck.name)
     return {
       deck,
+      isSample: deck.ownerId === 'sample',
       rank: index + 1,
       dominantColor,
       archetype,
@@ -240,10 +244,14 @@ const decoratedDecks = computed(() =>
 </script>
 
 <template>
-  <div class="max-w-screen-2xl mx-auto px-4 py-9 sm:px-6 lg:px-8">
+  <div class="max-w-screen-2xl mx-auto px-3 sm:px-6 py-6 sm:py-9 lg:px-8">
     <div class="mb-7">
-      <h1 class="text-3xl font-bold text-ds-soft-white">Community Decks</h1>
-      <p class="text-ds-slate mt-1">Trending public decks from the DigiSomething community</p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-ds-soft-white">Community Decks</h1>
+      <p class="text-sm sm:text-base text-ds-slate mt-1">Trending public decks from the DigiSomething community</p>
+    </div>
+
+    <div v-if="topAdSlot" class="mb-6">
+      <AdSlot :slot="topAdSlot" />
     </div>
 
     <div v-if="loading" class="flex justify-center py-24">
@@ -266,10 +274,11 @@ const decoratedDecks = computed(() =>
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      <RouterLink
+      <component
         v-for="item in decoratedDecks"
         :key="item.deck.id"
-        :to="{ name: 'deck-detail', params: { id: item.deck.id } }"
+        :is="item.isSample ? 'div' : RouterLink"
+        :to="item.isSample ? undefined : { name: 'deck-detail', params: { id: item.deck.id } }"
         class="community-card group rounded-xl border border-ds-neon/20 overflow-hidden bg-ds-navy/70 hover:border-ds-cyan/60 transition-all duration-200"
       >
         <div class="relative h-28 overflow-hidden bg-ds-midnight/90">
@@ -331,7 +340,11 @@ const decoratedDecks = computed(() =>
             </span>
           </div>
         </div>
-      </RouterLink>
+      </component>
+      </div>
+
+      <div v-if="inlineAdSlot" class="mt-6">
+        <AdSlot :slot="inlineAdSlot" />
       </div>
     </div>
   </div>

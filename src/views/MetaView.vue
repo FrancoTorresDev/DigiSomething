@@ -54,9 +54,9 @@ const COLOR_BADGE: Record<string, string> = {
 </script>
 
 <template>
-  <div class="max-w-screen-xl mx-auto px-4 py-10">
+  <div class="max-w-screen-xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-ds-soft-white mb-1">Meta Decks</h1>
+      <h1 class="text-2xl sm:text-3xl font-bold text-ds-soft-white mb-1">Meta Decks</h1>
       <p class="text-ds-slate">Top community-voted public decks</p>
     </div>
 

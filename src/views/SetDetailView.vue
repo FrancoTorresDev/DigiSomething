@@ -58,7 +58,7 @@ function onCardClick(card: DigimonCard) {
 </script>
 
 <template>
-  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+  <div class="max-w-screen-2xl mx-auto px-3 sm:px-6 py-5 sm:py-8">
 
     <!-- Back + header -->
     <div class="mb-6">
@@ -91,7 +91,7 @@ function onCardClick(card: DigimonCard) {
 
     <!-- Search bar -->
     <div v-if="set && !loading && cards.length" class="mb-6">
-      <div class="flex items-center gap-2 bg-ds-navy border border-ds-neon/20 rounded-lg px-3 py-2 w-full sm:w-80 focus-within:border-ds-cyan transition-colors">
+      <div class="flex items-center gap-2 bg-ds-navy border border-ds-neon/20 rounded-lg px-3 py-2 w-full sm:max-w-md focus-within:border-ds-cyan transition-colors">
         <svg class="w-4 h-4 text-ds-slate shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
@@ -139,7 +139,7 @@ function onCardClick(card: DigimonCard) {
       v-else
       :cards="filteredCards"
       :selectable="true"
-      grid-class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3"
+      grid-class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3"
       @card-click="onCardClick"
     />
 
